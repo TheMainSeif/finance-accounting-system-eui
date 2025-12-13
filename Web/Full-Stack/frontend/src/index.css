@@ -1,0 +1,87 @@
+:root {
+  /* ========================================================================
+     COLOR PALETTE (Based on Landing Page Design)
+     ======================================================================== */
+  
+  /* Primary Backgrounds */
+  --color-bg-primary: #1e293b; /* Dark Navy Hero */
+  --color-bg-secondary: #f8fafc; /* Light Gray for other sections? No, keeping dark based on user preference "maintaining everything". */
+  /* Actually, the user said "change the color theme... to be like this". The image shows White Navbar. */
+  
+  /* Accents */
+  --color-accent-teal: #10b981;   /* The Logo Green/Teal */
+  --color-accent-yellow: #fbbf24; /* The CTA Yellow */
+  --color-accent-blue: #1d4ed8;   /* Submit Button */
+  --color-accent-yellow: #fbbf24; /* Primary Buttons (Login/CTA) */
+  --color-accent-yellow-hover: #d97706;
+  --color-accent-teal: #14b8a6;   /* Icons/Badges */
+
+  /* Text Colors */
+  --color-text-primary: #f9fafb;  /* Start white on dark */
+  --color-text-secondary: #9ca3af; /* Muted text */
+  --color-text-dark: #111827;     /* For use inside the White Modal */
+  
+  /* Borders */
+  --color-border-dark: #374151;
+  --color-border-light: #e5e7eb;
+
+  /* Typography */
+  --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+
+
+/* ========================================================================
+   GLOBAL RESET & BASE STYLES
+   ======================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family-base);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================================================
+   UTILITY CLASSES (Reusability)
+   ======================================================================== */
+
+/* Button styles moved to components/ui/Button.css */
+
+/* Inputs */
+.input-base {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border-dark);
+  background-color: #374151; /* Dark Input */
+  color: white;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-base:focus {
+  border-color: var(--color-accent-yellow);
+}
+
+/* Modal / Cards (The "Choose Portal" Look) */
+.card-modal {
+  background-color: var(--color-bg-modal);
+  color: var(--color-text-dark); /* Dark text inside white card */
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+}

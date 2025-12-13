@@ -1,0 +1,201 @@
+/* Login.css */
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent backdrop */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px); /* Blur effect */
+}
+
+.login-card {
+  position: relative;
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 3rem;
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.modal-animate {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.close-modal-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.close-modal-btn:hover {
+  color: #1e293b;
+}
+
+.login-header {
+  margin-bottom: 2.5rem;
+}
+
+.login-title {
+  color: #1e293b;
+  font-size: 1.875rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* Portal Selection Grid */
+.portal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.portal-card {
+  background-color: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 2rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.portal-card:hover {
+  border-color: var(--color-accent-blue);
+  background-color: #eff6ff;
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.portal-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-accent-dark);
+}
+
+.portal-title {
+  font-weight: 700;
+  color: #334155;
+}
+
+/* Login Form Styles */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  text-align: left;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background-color: white;
+  color: #334155;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+.back-btn {
+  margin-bottom: 1.5rem;
+  color: #64748b;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+}
+
+.back-btn:hover {
+  color: #334155;
+  text-decoration: underline;
+}
+
+/* Header margin utility */
+.login-header-margin {
+  margin-bottom: 1.5rem;
+}
+
+/* Error/Success Messages */
+.message-box {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.message-error {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.message-success {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+/* Input Error State */
+.input-error {
+  border-color: #dc2626;
+}
+
+.error-text {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.general-error {
+  color: #dc2626;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.submit-btn-wrapper {
+  width: 100%;
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: center;
+}
