@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import Button from '../../components/ui/Button';
 import './Login.css';
 
@@ -8,6 +10,8 @@ import './Login.css';
  * Currently Purely Visual - No API Integration yet.
  */
 const Login = ({ onClose }) => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [view, setView] = useState('selection'); // 'selection' | 'student' | 'finance'
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -54,14 +58,24 @@ const Login = ({ onClose }) => {
     setErrors({});
     setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
-      if (formData.password.length < 4) {
-         setErrors({ general: 'Invalid credentials. Please try again.' });
-      } else {
-         setSuccess(true);
-      }
-    }, 1500);
+    // Call Backend
+    const result = await login(formData.identifier, formData.password);
+    setLoading(false);
+
+    if (result.success) {
+      setSuccess(true);
+      // Wait a moment for the success message, then redirect
+      setTimeout(() => {
+        onClose(); // Close Modal
+        if (result.data.is_admin) {
+           navigate('/finance');
+        } else {
+           navigate('/student/dashboard');
+        }
+      }, 1000);
+    } else {
+      setErrors({ general: result.message });
+    }
   };
 
   // Close when clicking backdrop

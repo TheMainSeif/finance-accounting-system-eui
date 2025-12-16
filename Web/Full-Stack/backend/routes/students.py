@@ -115,6 +115,73 @@ def enroll_course():
 
 
 # ============================================================================
+# ENDPOINT: DELETE /api/students/enroll/<int:course_id>
+# Description: Drop a course and adjust dues
+# ============================================================================
+@students_bp.route("/enroll/<int:course_id>", methods=["DELETE"])
+@jwt_required()
+def drop_course(course_id):
+    """
+    Drop a course enrollment. Automatically updates dues_balance.
+    """
+    identity = get_jwt_identity()
+    if not identity:
+        return jsonify({"error": "Invalid or missing user identity"}), 401
+        
+    try:
+        student_id = int(identity)
+        
+        # Verify student exists
+        student = User.query.get(student_id)
+        if not student:
+            return jsonify({"error": "Student not found"}), 404
+            
+        # Find enrollment
+        enrollment = Enrollment.query.filter_by(
+            student_id=student_id, 
+            course_id=course_id
+        ).first()
+        
+        if not enrollment:
+            return jsonify({"error": "Enrollment not found"}), 404
+            
+        # Get course to know the fee
+        course = Course.query.get(course_id)
+        fee_to_refund = course.total_fee if course else enrollment.course_fee
+        
+        # Start transaction
+        try:
+            # Decrease dues
+            student.dues_balance -= fee_to_refund
+            # Ensure dues don't drop below zero if that's a requirement, but let's allow negative for refunds to be safe if they paid
+            
+            # Delete enrollment
+            db.session.delete(enrollment)
+            
+            # Create notification
+            notification = Notification(
+                student_id=student_id,
+                notification_type='ENROLLMENT',
+                message=f"Dropped {course.name if course else 'course'}. Dues reduced by ${fee_to_refund}"
+            )
+            db.session.add(notification)
+            
+            db.session.commit()
+            
+            return jsonify({
+                "msg": "Course dropped successfully", 
+                "current_dues": student.dues_balance
+            }), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": f"Failed to drop course: {str(e)}"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+# ============================================================================
 # ENDPOINT: POST /api/students/pay
 # Description: Record student payment and update dues_balance
 # ============================================================================
