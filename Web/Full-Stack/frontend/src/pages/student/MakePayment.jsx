@@ -11,6 +11,7 @@ const MakePayment = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Card details
   const [cardNumber, setCardNumber] = useState('');
@@ -46,20 +47,63 @@ const MakePayment = () => {
 
     // Validate card details
     if (paymentMethod === 'card') {
-      if (!cardNumber || !expiryDate || !cvv || !cardholderName) {
-        setError('Please fill in all card details');
-        return;
+      const errors = {};
+      let isValid = true;
+
+      // 1. Validate Card Number
+      const cleanCardNum = cardNumber.replace(/\s/g, '');
+      if (cleanCardNum.length !== 16) {
+        errors.cardNumber = 'Card number must be 16 digits';
+        isValid = false;
       }
+
+      // 2. Validate Expiry Date
+      if (expiryDate.length !== 5) {
+        errors.expiryDate = 'Invalid format (MM/YY)';
+        isValid = false;
+      } else {
+        const [expMonth, expYear] = expiryDate.split('/');
+        const month = parseInt(expMonth, 10);
+        const year = parseInt(expYear, 10);
+        const now = new Date();
+        const currentYear = now.getFullYear() % 100;
+        const currentMonth = now.getMonth() + 1;
+
+        if (!month || !year || month < 1 || month > 12) {
+          errors.expiryDate = 'Invalid month';
+          isValid = false;
+        } else if (year < currentYear || (year === currentYear && month < currentMonth)) {
+          errors.expiryDate = 'Card has expired';
+          isValid = false;
+        }
+      }
+
+      // 3. Validate CVV
+      if (cvv.length < 3 || cvv.length > 4) {
+        errors.cvv = 'Invalid CVV';
+        isValid = false;
+      }
+
+      // 4. Validate Name
+      if (!cardholderName || cardholderName.trim().length < 2) {
+        errors.cardholderName = 'Enter cardholder name';
+        isValid = false;
+      }
+
+      setFieldErrors(errors);
+      if (!isValid) return;
     }
 
     setProcessing(true);
     setError(null);
+    setFieldErrors({});
 
     try {
+      const last4 = paymentMethod === 'card' ? cardNumber.replace(/\s/g, '').slice(-4) : '0000';
       const paymentData = {
         amount: outstandingBalance,
         payment_method: paymentMethod === 'card' ? 'ONLINE' : 'MANUAL',
-        reference_number: `PAY-${Date.now()}`
+        reference_number: `PAY-${Date.now()}-${last4}`
       };
 
       const response = await studentService.makePayment(
@@ -141,12 +185,6 @@ const MakePayment = () => {
                     </svg>
                     <span>Bank Transfer</span>
                   </div>
-                  <div className="payment-method-card disabled">
-                    <svg className="method-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span>Cash</span>
-                  </div>
                 </div>
               </div>
 
@@ -162,14 +200,26 @@ const MakePayment = () => {
 
                   <div className="form-group">
                     <label>Card Number</label>
-                    <input
-                      type="text"
-                      placeholder="1234 5678 9012 3456"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value.replace(/\s/g, '').slice(0, 16))}
-                      maxLength="16"
-                      required
-                    />
+                    <div className="input-with-icon">
+                      <input
+                        type="text"
+                        placeholder="0000 0000 0000 0000"
+                        value={cardNumber}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/\D/g, '').slice(0, 16);
+                          const formatted = v.match(/.{1,4}/g)?.join(' ') || v;
+                          setCardNumber(formatted);
+                          setFieldErrors(prev => ({ ...prev, cardNumber: null }));
+                        }}
+                        maxLength="19"
+                        required
+                        className={fieldErrors.cardNumber ? 'invalid' : ''}
+                      />
+                      <svg className="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                    </div>
+                    {fieldErrors.cardNumber && <span className="error-message">{fieldErrors.cardNumber}</span>}
                   </div>
 
                   <div className="form-row">
@@ -179,21 +229,57 @@ const MakePayment = () => {
                         type="text"
                         placeholder="MM/YY"
                         value={expiryDate}
-                        onChange={(e) => setExpiryDate(e.target.value)}
+                        onChange={(e) => {
+                            let val = e.target.value;
+                            if (val.length < expiryDate.length) { setExpiryDate(val); return; }
+                            const clean = val.replace(/\D/g, '');
+                            if (clean.length === 1 && parseInt(clean) > 1) { setExpiryDate(`0${clean}/`); return; }
+                            if (clean.length === 2 && parseInt(clean) > 12) return; 
+                            let formatted = clean.slice(0, 4);
+                            if (formatted.length >= 2) formatted = `${formatted.slice(0, 2)}/${formatted.slice(2)}`;
+                            setExpiryDate(formatted);
+                            setFieldErrors(prev => ({ ...prev, expiryDate: null }));
+                        }}
+                        onBlur={() => {
+                            if (expiryDate.length === 5) {
+                                const [expMonth, expYear] = expiryDate.split('/');
+                                const month = parseInt(expMonth, 10);
+                                const year = parseInt(expYear, 10);
+                                const now = new Date();
+                                const currentYear = now.getFullYear() % 100;
+                                const currentMonth = now.getMonth() + 1;
+
+                                if (year < currentYear || (year === currentYear && month < currentMonth)) {
+                                    setFieldErrors(prev => ({ ...prev, expiryDate: 'Card has expired' }));
+                                }
+                            }
+                        }}
                         maxLength="5"
                         required
+                        className={fieldErrors.expiryDate ? 'invalid' : ''}
                       />
+                      {fieldErrors.expiryDate && <span className="error-message">{fieldErrors.expiryDate}</span>}
                     </div>
                     <div className="form-group">
                       <label>CVV</label>
-                      <input
-                        type="text"
-                        placeholder="123"
-                        value={cvv}
-                        onChange={(e) => setCvv(e.target.value.slice(0, 3))}
-                        maxLength="3"
-                        required
-                      />
+                      <div className="input-with-icon">
+                        <input
+                          type="text"
+                          placeholder="123"
+                          value={cvv}
+                          onChange={(e) => {
+                            setCvv(e.target.value.replace(/\D/g, '').slice(0, 4));
+                            setFieldErrors(prev => ({ ...prev, cvv: null }));
+                          }}
+                          maxLength="4"
+                          required
+                          className={fieldErrors.cvv ? 'invalid' : ''}
+                        />
+                         <svg className="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                      {fieldErrors.cvv && <span className="error-message">{fieldErrors.cvv}</span>}
                     </div>
                   </div>
 
@@ -201,11 +287,16 @@ const MakePayment = () => {
                     <label>Cardholder Name</label>
                     <input
                       type="text"
-                      placeholder="John Smith"
+                      placeholder="JOHN SMITH"
                       value={cardholderName}
-                      onChange={(e) => setCardholderName(e.target.value)}
+                      onChange={(e) => {
+                        setCardholderName(e.target.value.toUpperCase());
+                        setFieldErrors(prev => ({ ...prev, cardholderName: null }));
+                      }}
                       required
+                      className={fieldErrors.cardholderName ? 'invalid' : ''}
                     />
+                    {fieldErrors.cardholderName && <span className="error-message">{fieldErrors.cardholderName}</span>}
                   </div>
                 </div>
               )}

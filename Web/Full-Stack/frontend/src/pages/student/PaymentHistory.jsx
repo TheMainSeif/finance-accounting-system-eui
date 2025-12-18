@@ -38,7 +38,16 @@ const PaymentHistory = () => {
 
   const getFilteredPayments = () => {
     if (filter === 'all') return payments;
-    return payments.filter(p => p.status.toLowerCase() === filter.toLowerCase());
+    
+    // Map filter values to backend status values
+    const statusMap = {
+      'paid': 'RECEIVED',
+      'pending': 'PENDING',
+      'failed': 'FAILED'
+    };
+    
+    const targetStatus = statusMap[filter.toLowerCase()] || filter.toUpperCase();
+    return payments.filter(p => p.status.toUpperCase() === targetStatus);
   };
 
   const handleViewReceipt = (payment) => {

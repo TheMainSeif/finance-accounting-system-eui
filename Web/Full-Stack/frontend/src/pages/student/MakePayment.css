@@ -331,3 +331,42 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Input with Icon Styles */
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon input {
+  padding-right: 2.5rem; /* Space for icon */
+}
+
+.field-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.input-with-icon input.invalid,
+.form-group input.invalid {
+  border-color: #ef4444;
+}
+
+.input-with-icon input.invalid:focus,
+.form-group input.invalid:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: block;
+  font-weight: 500;
+}

@@ -7,11 +7,11 @@ import './Login.css';
 /**
  * Login Page
  * Handles "Portal Selection" (Visual Step 1) and "Login Form" (Visual Step 2).
- * Currently Purely Visual - No API Integration yet.
  */
 const Login = ({ onClose }) => {
-  const { login } = useAuth();
   const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [view, setView] = useState('selection'); // 'selection' | 'student' | 'finance'
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -58,37 +58,40 @@ const Login = ({ onClose }) => {
     setErrors({});
     setLoading(true);
 
-    // Call Backend
-    const result = await login(formData.identifier, formData.password);
-    setLoading(false);
-
-    if (result.success) {
-      setSuccess(true);
-      // Wait a moment for the success message, then redirect
-      setTimeout(() => {
-        onClose(); // Close Modal
-        if (result.data.is_admin) {
-           navigate('/finance');
-        } else {
-           navigate('/student/dashboard');
-        }
-      }, 1000);
-    } else {
-      setErrors({ general: result.message });
+    try {
+      const result = await login(formData.identifier, formData.password);
+      
+      if (result.success) {
+        setSuccess(true);
+        // Short delay to show success message
+        setTimeout(() => {
+          if (view === 'student') {
+             navigate('/student/dashboard');
+          } else {
+             navigate('/finance');
+          }
+        }, 1000);
+      } else {
+        setErrors({ general: result.message });
+      }
+    } catch (err) {
+      setErrors({ general: 'An unexpected error occurred.' });
+    } finally {
+      setLoading(false);
     }
   };
 
   // Close when clicking backdrop
   const handleBackdropClick = (e) => {
     if (e.target.className === 'login-overlay') {
-      onClose();
+      if (onClose) onClose();
     }
   };
 
   return (
     <div className="login-overlay" onClick={handleBackdropClick}>
       <div className="login-card modal-animate">
-        <button className="close-modal-btn" onClick={onClose}>&times;</button>
+        {onClose && <button className="close-modal-btn" onClick={onClose}>&times;</button>}
         
         {/* Step 1: Portal Selection */}
         {view === 'selection' && (
