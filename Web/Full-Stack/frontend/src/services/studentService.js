@@ -124,13 +124,26 @@ const studentService = {
    * @param {string} referenceNumber - Optional reference number
    * @returns {Promise<Object>} Payment confirmation
    */
-  makePayment: async (amount, paymentMethod = 'ONLINE', referenceNumber = '') => {
+  makePayment: async (amount, paymentMethod = 'ONLINE', referenceNumber = '', proofFile = null) => {
     try {
-      const response = await api.post('/students/pay', {
-        amount,
-        payment_method: paymentMethod,
-        reference_number: referenceNumber
-      });
+      let data;
+      
+      if (proofFile) {
+        data = new FormData();
+        data.append('amount', amount);
+        data.append('payment_method', paymentMethod);
+        data.append('reference_number', referenceNumber);
+        data.append('proof_document', proofFile);
+        // Axios automatically sets Content-Type to multipart/form-data when data is FormData
+      } else {
+        data = {
+          amount,
+          payment_method: paymentMethod,
+          reference_number: referenceNumber
+        };
+      }
+      
+      const response = await api.post('/students/pay', data);
       return response.data;
     } catch (error) {
       console.error('Error making payment:', error);

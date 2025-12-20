@@ -232,67 +232,31 @@ def seed_database():
         # ====================================================================
         print("\nCreating enrollments...")
         
-        enrollments = [
-            # Student 1: 2 courses
-            Enrollment(
-                student_id=students[0].id,
-                course_id=courses[0].id,
-                course_fee=courses[0].total_fee,
-                status='ACTIVE'
-            ),
-            Enrollment(
-                student_id=students[0].id,
-                course_id=courses[1].id,
-                course_fee=courses[1].total_fee,
-                status='ACTIVE'
-            ),
-            # Student 2: 1 course
-            Enrollment(
-                student_id=students[1].id,
-                course_id=courses[1].id,
-                course_fee=courses[1].total_fee,
-                status='ACTIVE'
-            ),
-            # Student 3: 3 courses
-            Enrollment(
-                student_id=students[2].id,
-                course_id=courses[0].id,
-                course_fee=courses[0].total_fee,
-                status='ACTIVE'
-            ),
-            Enrollment(
-                student_id=students[2].id,
-                course_id=courses[2].id,
-                course_fee=courses[2].total_fee,
-                status='ACTIVE'
-            ),
-            Enrollment(
-                student_id=students[2].id,
-                course_id=courses[3].id,
-                course_fee=courses[3].total_fee,
-                status='ACTIVE'
-            ),
-            # Student 4: 2 courses
-            Enrollment(
-                student_id=students[3].id,
-                course_id=courses[2].id,
-                course_fee=courses[2].total_fee,
-                status='ACTIVE'
-            ),
-            Enrollment(
-                student_id=students[3].id,
-                course_id=courses[4].id,
-                course_fee=courses[4].total_fee,
-                status='ACTIVE'
-            ),
-            # Student 5: 1 course
-            Enrollment(
-                student_id=students[4].id,
-                course_id=courses[3].id,
-                course_fee=courses[3].total_fee,
-                status='ACTIVE'
-            ),
-        ]
+        enrollments = []
+        import random
+        
+        for student in students:
+            # Get courses for this student's faculty
+            faculty_courses = [c for c in courses if c.faculty_id == student.faculty_id]
+            
+            if faculty_courses:
+                # Enroll in 1 to all available courses for their faculty
+                # For deterministic seeding, let's just pick the first 1-2 courses
+                num_courses = min(len(faculty_courses), 2)
+                courses_to_enroll = faculty_courses[:num_courses]
+                
+                for course in courses_to_enroll:
+                    enrollments.append(
+                        Enrollment(
+                            student_id=student.id,
+                            course_id=course.id,
+                            course_fee=course.total_fee,
+                            status='ACTIVE'
+                        )
+                    )
+        
+        # Add manually specified complex enrollments for specific testing scenarios if needed
+        # But for now, the dynamic logic above covers all students correctly.
         
         for enrollment in enrollments:
             db.session.add(enrollment)

@@ -413,8 +413,8 @@ const CourseRegistration = () => {
                           e.stopPropagation();
                           handleDropCourse(course.id);
                         }}
-                        disabled={dropLoading === course.id}
-                        title="Drop this course"
+                        disabled={dropLoading === course.id || hasPayments}
+                        title={hasPayments ? "Cannot drop courses after making payments" : "Drop this course"}
                       >
                         {dropLoading === course.id ? 'Dropping...' : 'Drop'}
                       </button>

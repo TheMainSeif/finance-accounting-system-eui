@@ -187,6 +187,7 @@ class Payment(db.Model):
     payment_method = db.Column(db.String(50), default='MANUAL')  # MANUAL, BANK_TRANSFER, ONLINE
     status = db.Column(db.String(20), default='RECEIVED')  # RECEIVED, PENDING, RECONCILED
     reference_number = db.Column(db.String(100), nullable=True)  # For external payments
+    proof_document = db.Column(db.String(255), nullable=True)  # Path to uploaded file
     recorded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Admin who recorded it
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -205,6 +206,7 @@ class Payment(db.Model):
             'payment_method': self.payment_method,
             'status': self.status,
             'reference_number': self.reference_number,
+            'proof_document': self.proof_document,
             'notes': self.notes,
             'created_at': self.created_at.isoformat()
         }

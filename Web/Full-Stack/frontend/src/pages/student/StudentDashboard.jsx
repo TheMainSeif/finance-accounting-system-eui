@@ -57,7 +57,7 @@ const StudentDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="dashboard-container">
+      <div className="student-dashboard-content">
         
         {/* Header */}
         <div className="dashboard-header">

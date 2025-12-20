@@ -1,8 +1,7 @@
 /* Dashboard Container */
-.dashboard-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+.student-dashboard-content {
+  width: 100%;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 2rem; /* Consistent vertical spacing between sections */
@@ -141,21 +140,36 @@
 /* Header row for the course list */
 .course-list-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 3fr 1.5fr 1.5fr 1fr;
+  gap: 1rem;
   padding: 0.75rem 1.5rem;
-  background-color: #fca5a5; /* Using a subtle header background if desired, or keep white */
-  background-color: #fff;
+  background-color: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
   font-size: 0.75rem;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  align-items: center;
+}
+
+.course-list-header > div:nth-child(1) {
+  text-align: left;
+}
+
+.course-list-header > div:nth-child(2),
+.course-list-header > div:nth-child(3) {
+  text-align: center;
+}
+
+.course-list-header > div:nth-child(4) {
+  text-align: center;
 }
 
 .course-item {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 3fr 1.5fr 1.5fr 1fr;
+  gap: 1rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #f3f4f6;
   align-items: center;
@@ -173,13 +187,18 @@
 .course-name {
   font-weight: 500;
   color: #111827;
+  text-align: left;
 }
 
 .course-meta-item {
   color: #4b5563;
+  text-align: center;
+}
+
+.course-item > div:nth-child(4) {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem;
 }
 
 .status-badge {
@@ -190,7 +209,6 @@
   font-weight: 600;
   background-color: #d1fae5;
   color: #065f46;
-  width: fit-content;
 }
 
 /* Empty State */
@@ -302,8 +320,8 @@
     grid-template-columns: 1fr;
   }
   
-  .dashboard-container {
-    padding: 1rem;
+  .student-dashboard-content {
+    padding: 0;
   }
   
   .course-list-header, .course-item {

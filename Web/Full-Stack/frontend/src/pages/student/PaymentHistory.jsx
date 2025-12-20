@@ -188,8 +188,8 @@ const PaymentHistory = () => {
                       <td className="amount">${payment.amount.toLocaleString()}</td>
                       <td>
                         {payment.payment_method === 'ONLINE' ? 'Credit Card' : 
-                         payment.payment_method === 'MANUAL' ? 'Bank Transfer' : 
-                         'Cash'}
+                         payment.payment_method === 'BANK_TRANSFER' ? 'Bank Transfer' : 
+                         'Manual / Cash'}
                       </td>
                       <td>
                         <span className={`status-badge ${payment.status.toLowerCase()}`}>

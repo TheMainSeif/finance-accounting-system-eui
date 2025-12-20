@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
+import studentService from '../../services/studentService';
 import './PaymentReceipt.css';
 
 const PaymentReceipt = () => {
@@ -26,9 +27,12 @@ const PaymentReceipt = () => {
         }
         
         setPaymentInfo({
+
           ...paymentData,
           cardLast4,
           paymentMethod,
+          isPending: location.state?.isPending || paymentData.status === 'PENDING',
+          status: paymentData.status,
           date: date || new Date(paymentData.payment_date).toLocaleString('en-US', {
             month: 'long',
             day: 'numeric',
@@ -56,6 +60,8 @@ const PaymentReceipt = () => {
               payment_method: latestPayment.payment_method,
               cardLast4: latestPayment.reference_number?.slice(-4) || '****',
               paymentMethod: latestPayment.payment_method === 'ONLINE' ? 'card' : 'bank',
+              isPending: latestPayment.status === 'PENDING',
+              status: latestPayment.status,
               date: new Date(latestPayment.payment_date).toLocaleString('en-US', {
                 month: 'long',
                 day: 'numeric',
@@ -112,6 +118,8 @@ const PaymentReceipt = () => {
     );
   }
 
+  const isPending = paymentInfo.isPending || paymentInfo.status === 'PENDING';
+
   return (
     <DashboardLayout>
       <div className="payment-receipt-container">
@@ -139,16 +147,28 @@ const PaymentReceipt = () => {
 
         {/* Receipt Content */}
         <div className="receipt-content">
-          {/* Success Message */}
-          <div className="success-message">
-            <div className="success-icon-wrapper">
-              <svg className="success-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+          {/* Status Message */}
+          {isPending ? (
+            <div className="success-message pending">
+              <div className="success-icon-wrapper pending">
+                <svg className="success-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="success-title">Payment Under Review</h2>
+              <p className="success-subtitle">Your payment is under review by the finance department. You will be notified once it is approved or rejected.</p>
             </div>
-            <h2 className="success-title">Payment Successful</h2>
-            <p className="success-subtitle">Your payment has been processed successfully</p>
-          </div>
+          ) : (
+            <div className="success-message">
+              <div className="success-icon-wrapper">
+                <svg className="success-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="success-title">Payment Successful</h2>
+              <p className="success-subtitle">Your payment has been processed successfully</p>
+            </div>
+          )}
 
           {/* Transaction Details */}
           <div className="receipt-details">
@@ -166,7 +186,9 @@ const PaymentReceipt = () => {
 
             <div className="detail-row">
               <span className="detail-label">Status</span>
-              <span className="status-badge completed">Completed</span>
+              <span className={`status-badge ${isPending ? 'pending' : 'completed'}`}>
+                {isPending ? 'Pending Verification' : 'Completed'}
+              </span>
             </div>
           </div>
 
