@@ -21,30 +21,15 @@ class Faculty(db.Model):
     students = db.relationship('User', back_populates='faculty', foreign_keys='User.faculty_id')
     courses = db.relationship('Course', back_populates='faculty')
 
-    def to_dict(self, include_faculty=False):
-        """Convert course to dictionary representation.
-        
-        Args:
-            include_faculty (bool): Whether to include faculty information
-        """
-        result = {
+    def to_dict(self):
+        """Convert faculty to dictionary representation."""
+        return {
             'id': self.id,
-            'course_id': self.course_id,
             'name': self.name,
-            'credits': self.credits,
-            'total_fee': self.total_fee,
-            'description': self.description or '',  # Ensure description is never None
+            'code': self.code,
+            'description': self.description or '',
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
-        
-        if include_faculty and self.faculty:
-            result['faculty'] = {
-                'id': self.faculty.id,
-                'name': self.faculty.name,
-                'code': self.faculty.code
-            }
-        
-        return result
 
 # ============================================================================
 # USER MODEL - Represents both students and admin users

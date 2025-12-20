@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { message } from 'antd';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import studentService from '../../services/studentService';
 import './CourseRegistration.css';
@@ -23,7 +24,7 @@ const CourseRegistration = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Check for authentication token
       const token = localStorage.getItem('token');
       console.log('Auth token exists:', !!token);
@@ -41,16 +42,16 @@ const CourseRegistration = () => {
         console.log('Dashboard status data:', statusData);
 
         // Get faculty ID from status data
-        const facultyId = statusData?.faculty?.id || 
-                         statusData?.user?.faculty_id || 
-                         (statusData?.user?.faculty ? statusData.user.faculty.id : null);
-        
+        const facultyId = statusData?.faculty?.id ||
+          statusData?.user?.faculty_id ||
+          (statusData?.user?.faculty ? statusData.user.faculty.id : null);
+
         console.log('Extracted faculty ID:', facultyId);
-        
+
         // Fetch courses - handle both with and without faculty ID
         console.log('Fetching courses...');
         let coursesData = [];
-        
+
         try {
           // First try with faculty ID if available
           if (facultyId) {
@@ -73,11 +74,11 @@ const CourseRegistration = () => {
           return;
         }
         console.log('Courses data received:', coursesData);
-        
+
         // Update courses state with validation
         const coursesArray = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
         console.log(`Setting ${coursesArray.length} courses`, coursesArray);
-        
+
         // Ensure all required fields have default values
         const validatedCourses = coursesArray.map(course => ({
           id: course.id || 0,
@@ -89,20 +90,20 @@ const CourseRegistration = () => {
           faculty_id: course.faculty_id || null,
           faculty: course.faculty || { id: null, name: 'Unknown Faculty' }
         }));
-        
+
         console.log('Validated courses:', validatedCourses);
         setCourses(validatedCourses);
-        
+
         // Update enrolled courses
         if (statusData.enrollments) {
           const enrolledIds = statusData.enrollments.map(e => e.course_id);
           console.log('Enrolled Course IDs:', enrolledIds);
           setEnrolledCourseIds(enrolledIds);
-          
+
           // Clear any selected courses that are now enrolled
           setSelectedCourses(prev => prev.filter(c => !enrolledIds.includes(c.id)));
         }
-        
+
         // Check for payments
         console.log('Fetching payment history...');
         const paymentData = await studentService.getPaymentHistory().catch(err => {
@@ -111,18 +112,18 @@ const CourseRegistration = () => {
         });
         console.log('Payment data:', paymentData);
         setHasPayments(paymentData.payments?.length > 0);
-        
+
       } catch (err) {
         console.error('Error in fetchData:', err);
-        
+
         if (err.status === 401 || err.response?.status === 401) {
           localStorage.removeItem('token');
-          throw { 
+          throw {
             message: 'Your session has expired. Please log in again.',
             status: 401
           };
         }
-        
+
         // For server errors, try to continue with empty data
         if (err.response?.status === 500) {
           console.warn('Server error, continuing with empty course list');
@@ -130,7 +131,7 @@ const CourseRegistration = () => {
           setEnrolledCourseIds([]);
           return;
         }
-        
+
         throw err; // Re-throw other errors
       }
 
@@ -158,13 +159,13 @@ const CourseRegistration = () => {
         console.error('Invalid course data:', course);
         return;
       }
-      
+
       setSelectedCourses(prev => {
         try {
           // Create a copy of the previous state to work with
           const newSelection = [...prev];
           const existingIndex = newSelection.findIndex(c => c && c.id === course.id);
-          
+
           if (existingIndex >= 0) {
             // If course is already selected, remove it
             newSelection.splice(existingIndex, 1);
@@ -175,14 +176,14 @@ const CourseRegistration = () => {
               message.warning('You are already enrolled in this course');
               return prev;
             }
-            
+
             // Check credit limit
             const currentCredits = newSelection.reduce((sum, c) => sum + (Number(c?.credits) || 0), 0);
             if (currentCredits + (Number(course.credits) || 0) > creditLimit) {
               message.error(`Cannot exceed credit limit of ${creditLimit} credits`);
               return prev;
             }
-            
+
             // Add the new course to selection
             return [
               ...newSelection,
@@ -214,7 +215,7 @@ const CourseRegistration = () => {
       // Remove from enrolled list and refresh data
       setEnrolledCourseIds(prev => prev.filter(id => id !== courseId));
       message.success('Course dropped successfully');
-      
+
       // Refresh data to ensure consistency
       await fetchData();
     } catch (err) {
@@ -231,7 +232,7 @@ const CourseRegistration = () => {
       return sum + credits;
     }, 0);
   };
-  
+
   // Update credit limit based on user's status or other criteria
   useEffect(() => {
     // You can fetch this from an API or user profile if needed
@@ -268,15 +269,15 @@ const CourseRegistration = () => {
 
     try {
       // Enroll in each selected course
-      const enrollPromises = selectedCourses.map(course => 
+      const enrollPromises = selectedCourses.map(course =>
         studentService.enrollCourse(course.id)
       );
-      
+
       await Promise.all(enrollPromises);
-      
+
       message.success('Registration successful!');
       setSelectedCourses([]);
-      
+
       // Refresh data to sync with server
       await fetchData();
     } catch (err) {
@@ -335,94 +336,92 @@ const CourseRegistration = () => {
             ) : (
               courses.map((course) => {
                 if (!course || !course.id) return null; // Skip invalid courses
-                
+
                 const courseId = course.id;
                 const isSelected = isCourseSelected(courseId);
                 const isEnrolled = enrolledCourseIds.includes(courseId);
-                
+
                 return (
-                <div
-                  key={courseId}
-                  className={`course-card ${isSelected ? 'selected' : ''} ${isEnrolled ? 'enrolled' : ''}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!isEnrolled) {
-                      handleCourseToggle(course);
-                    }
-                  }}
-                >
-                  <div className="course-checkbox">
-                    {isEnrolled ? (
-                      <div className="course-checkbox" onClick={(e) => e.stopPropagation()}>
-                        <div className="enrolled-badge">
-                          <svg className="check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  <div
+                    key={courseId}
+                    className={`course-card ${isSelected ? 'selected' : ''} ${isEnrolled ? 'enrolled' : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isEnrolled) {
+                        handleCourseToggle(course);
+                      }
+                    }}
+                  >
+                    <div className="course-checkbox">
+                      {isEnrolled ? (
+                        <div className="course-checkbox" onClick={(e) => e.stopPropagation()}>
+                          <div className="enrolled-badge">
+                            <svg className="check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="checkbox-container">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleCourseToggle(course)}
+                            className="checkbox-input"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          {isSelected && (
+                            <svg className="check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="course-info">
+                      <div className="course-header">
+                        <span className={`course-code ${isEnrolled ? 'enrolled-code' : ''}`}>{course.course_id}</span>
+                        <h3 className="course-name">
+                          {course.name}
+                          {isEnrolled && <span className="enrolled-text"> (Enrolled)</span>}
+                        </h3>
+                      </div>
+
+                      <div className="course-details">
+                        <div className="detail-item">
+                          <svg className="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
+                          <span>{course.credits} Credits</span>
+                        </div>
+
+                        <div className="detail-item">
+                          <svg className="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>${(course.total_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       </div>
-                    ) : (
-                      <div className="checkbox-container">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleCourseToggle(course)}
-                          className="checkbox-input"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        {isSelected && (
-                          <svg className="check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
+                    </div>
+
+                    {isEnrolled && (
+                      <button
+                        className="btn-drop"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDropCourse(course.id);
+                        }}
+                        disabled={dropLoading === course.id}
+                        title="Drop this course"
+                      >
+                        {dropLoading === course.id ? 'Dropping...' : 'Drop'}
+                      </button>
                     )}
                   </div>
-
-                  <div className="course-info">
-                    <div className="course-header">
-                      <span className={`course-code ${isEnrolled ? 'enrolled-code' : ''}`}>{course.course_id}</span>
-                      <h3 className="course-name">
-                        {course.name}
-                        {isEnrolled && <span className="enrolled-text"> (Enrolled)</span>}
-                      </h3>
-                    </div>
-
-                    <div className="course-details">
-                      <div className="detail-item">
-                        <svg className="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{course.credits} Credits</span>
-                      </div>
-
-                      <div className="detail-item">
-                        <svg className="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>${(course.total_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {isEnrolled && (
-                    <button 
-                        className={`btn-drop ${hasPayments ? 'disabled' : ''}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (!hasPayments) {
-                              handleDropCourse(course.id);
-                            }
-                        }}
-                        disabled={dropLoading === course.id || hasPayments}
-                        title={hasPayments ? 'Cannot drop courses after making payments' : 'Drop this course'}
-                    >
-                        {dropLoading === course.id ? 'Dropping...' : 'Drop'}
-                    </button>
-                  )}
-                </div>
-              );
-            }))}
+                );
+              }))}
           </div>
         </div>
 
