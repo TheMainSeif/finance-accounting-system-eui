@@ -13,6 +13,7 @@ const CourseRegistration = () => {
   const [success, setSuccess] = useState(false);
   const [dropLoading, setDropLoading] = useState(null); // ID of course being dropped
   const [hasPayments, setHasPayments] = useState(false); // Track if student has made any payments
+  const [creditLimit, setCreditLimit] = useState(18); // Default credit limit
 
   useEffect(() => {
     fetchData();
@@ -73,10 +74,24 @@ const CourseRegistration = () => {
         }
         console.log('Courses data received:', coursesData);
         
-        // Update courses state
-        const coursesArray = Array.isArray(coursesData) ? coursesData : [];
-        console.log(`Setting ${coursesArray.length} courses`);
-        setCourses(coursesArray);
+        // Update courses state with validation
+        const coursesArray = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
+        console.log(`Setting ${coursesArray.length} courses`, coursesArray);
+        
+        // Ensure all required fields have default values
+        const validatedCourses = coursesArray.map(course => ({
+          id: course.id || 0,
+          course_id: course.course_id || `COURSE-${course.id || '0'}`,
+          name: course.name || 'Unnamed Course',
+          description: course.description || '',
+          credits: Number(course.credits) || 3,
+          total_fee: Number(course.total_fee) || 0,
+          faculty_id: course.faculty_id || null,
+          faculty: course.faculty || { id: null, name: 'Unknown Faculty' }
+        }));
+        
+        console.log('Validated courses:', validatedCourses);
+        setCourses(validatedCourses);
         
         // Update enrolled courses
         if (statusData.enrollments) {
@@ -138,25 +153,56 @@ const CourseRegistration = () => {
   };
 
   const handleCourseToggle = (course) => {
-    setSelectedCourses(prev => {
-      const isSelected = prev.find(c => c.id === course.id);
-      if (isSelected) {
-        return prev.filter(c => c.id !== course.id);
-      } else {
-        // Check if already enrolled
-        if (enrolledCourseIds.includes(course.id)) {
-          message.warning('You are already enrolled in this course');
-          return prev;
-        }
-        // Check credit limit
-        const currentCredits = selectedCourses.reduce((sum, c) => sum + (c.credits || 0), 0);
-        if (currentCredits + (course.credits || 0) > creditLimit) {
-          message.error(`Cannot exceed credit limit of ${creditLimit} credits`);
-          return prev;
-        }
-        return [...prev, course];
+    try {
+      if (!course || !course.id) {
+        console.error('Invalid course data:', course);
+        return;
       }
-    });
+      
+      setSelectedCourses(prev => {
+        try {
+          // Create a copy of the previous state to work with
+          const newSelection = [...prev];
+          const existingIndex = newSelection.findIndex(c => c && c.id === course.id);
+          
+          if (existingIndex >= 0) {
+            // If course is already selected, remove it
+            newSelection.splice(existingIndex, 1);
+            return newSelection;
+          } else {
+            // Check if already enrolled
+            if (enrolledCourseIds.includes(course.id)) {
+              message.warning('You are already enrolled in this course');
+              return prev;
+            }
+            
+            // Check credit limit
+            const currentCredits = newSelection.reduce((sum, c) => sum + (Number(c?.credits) || 0), 0);
+            if (currentCredits + (Number(course.credits) || 0) > creditLimit) {
+              message.error(`Cannot exceed credit limit of ${creditLimit} credits`);
+              return prev;
+            }
+            
+            // Add the new course to selection
+            return [
+              ...newSelection,
+              {
+                id: course.id,
+                course_id: course.course_id,
+                name: course.name,
+                credits: Number(course.credits) || 0,
+                total_fee: Number(course.total_fee) || 0
+              }
+            ];
+          }
+        } catch (err) {
+          console.error('Error in handleCourseToggle:', err);
+          return prev; // Return previous state if error occurs
+        }
+      });
+    } catch (err) {
+      console.error('Error in handleCourseToggle:', err);
+    }
   };
 
   const handleDropCourse = async (courseId) => {
@@ -180,11 +226,24 @@ const CourseRegistration = () => {
   };
 
   const calculateTotalCredits = () => {
-    return selectedCourses.reduce((sum, course) => sum + (course.credits || 0), 0);
+    return selectedCourses.reduce((sum, course) => {
+      const credits = Number(course.credits) || 0;
+      return sum + credits;
+    }, 0);
   };
+  
+  // Update credit limit based on user's status or other criteria
+  useEffect(() => {
+    // You can fetch this from an API or user profile if needed
+    // For now, we'll use the default 18 credits
+    setCreditLimit(18);
+  }, []);
 
   const calculateTotalFees = () => {
-    return selectedCourses.reduce((sum, course) => sum + (course.total_fee || 0), 0);
+    return selectedCourses.reduce((sum, course) => {
+      const fee = Number(course.total_fee) || 0;
+      return sum + fee;
+    }, 0);
   };
 
   const handleSubmitRegistration = async () => {
@@ -268,38 +327,55 @@ const CourseRegistration = () => {
           )}
 
           <div className="courses-grid">
-            {courses.map((course) => {
-              const isSelected = isCourseSelected(course.id);
-              const isEnrolled = enrolledCourseIds.includes(course.id);
-              
-              return (
+            {courses.length === 0 ? (
+              <div className="no-courses">
+                <p>No courses available for your faculty at this time.</p>
+                <p>Please check back later or contact your academic advisor.</p>
+              </div>
+            ) : (
+              courses.map((course) => {
+                if (!course || !course.id) return null; // Skip invalid courses
+                
+                const courseId = course.id;
+                const isSelected = isCourseSelected(courseId);
+                const isEnrolled = enrolledCourseIds.includes(courseId);
+                
+                return (
                 <div
-                  key={course.id}
+                  key={courseId}
                   className={`course-card ${isSelected ? 'selected' : ''} ${isEnrolled ? 'enrolled' : ''}`}
-                  onClick={() => !isEnrolled && handleCourseToggle(course)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isEnrolled) {
+                      handleCourseToggle(course);
+                    }
+                  }}
                 >
                   <div className="course-checkbox">
                     {isEnrolled ? (
-                       // No checkbox for enrolled courses, maybe an indicator
-                       <div className="enrolled-badge">
-                        <svg className="check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
+                      <div className="course-checkbox" onClick={(e) => e.stopPropagation()}>
+                        <div className="enrolled-badge">
+                          <svg className="check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
                       </div>
                     ) : (
-                      <>
+                      <div className="checkbox-container">
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() => {}}
+                          onChange={() => handleCourseToggle(course)}
                           className="checkbox-input"
+                          onClick={(e) => e.stopPropagation()}
                         />
                         {isSelected && (
                           <svg className="check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
 
@@ -324,7 +400,7 @@ const CourseRegistration = () => {
                         <svg className="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>${course.total_fee.toLocaleString()}</span>
+                        <span>${(course.total_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                   </div>
@@ -346,7 +422,7 @@ const CourseRegistration = () => {
                   )}
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
 
@@ -375,7 +451,7 @@ const CourseRegistration = () => {
 
               <div className="summary-row total">
                 <span className="summary-label">Estimated Fees</span>
-                <span className="summary-value">${calculateTotalFees().toLocaleString()}</span>
+                <span className="summary-value">${calculateTotalFees().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
 
               <button

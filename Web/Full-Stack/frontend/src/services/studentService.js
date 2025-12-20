@@ -6,18 +6,25 @@ const studentService = {
    * @returns {Promise<Object>} Student status data
    */
   getDashboardStatus: async () => {
-    const response = await api.get('/students/status');
-    return response.data;
+    try {
+      const response = await api.get('/students/status');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching dashboard status:', error);
+      throw error;
+    }
   },
 
   /**
    * Get all available courses
-   * @returns {Promise<Object>} List of courses
+   * @param {number} [facultyId] - Optional faculty ID to filter courses
+   * @returns {Promise<Object>} Object containing courses array
    */
-    getCourses: async (facultyId) => {
+  getCourses: async (facultyId) => {
     try {
       console.log(`Fetching courses for faculty ID: ${facultyId}`);
       const params = {};
+      
       if (facultyId) {
         params.faculty_id = facultyId;
       } else {
@@ -31,12 +38,6 @@ const studentService = {
         throw { message: 'Authentication required', status: 401 };
       }
       
-      // Add token to request headers
-      const config = {
-        headers: { 'Authorization': `Bearer ${token}` },
-        params: params
-      };
-      
       // Make the API request with proper error handling
       const response = await api.get('/courses', { 
         params,
@@ -46,48 +47,43 @@ const studentService = {
         }
       });
       
-      console.log('Courses API Response:', response);
-      return response.data;
+      console.log('Courses API Response - Full Response:', response);
       
       // Handle different response formats
-      if (!response.data) {
-        console.error('No data in response');
-        return [];
+      if (!response?.data) {
+        console.error('No data in API response');
+        return { courses: [] };
       }
       
-      // If the response is an array, return it directly
+      // Check if the data has a courses array or if it's the array itself
+      let courses = [];
+      
       if (Array.isArray(response.data)) {
-        return response.data;
+        // If response.data is already an array
+        courses = response.data;
+      } else if (response.data.courses && Array.isArray(response.data.courses)) {
+        // If response.data has a 'courses' array
+        courses = response.data.courses;
+      } else if (response.data.data) {
+        // If response.data has a 'data' field
+        courses = response.data.data.courses || response.data.data || [];
       }
       
-      // If the response has a 'courses' field, return that
-      if (response.data.courses && Array.isArray(response.data.courses)) {
-        return response.data.courses;
-      }
+      console.log('Processed courses data:', courses);
+      return { courses: Array.isArray(courses) ? courses : [] };
       
-      // If the response has a 'data' field, return that
-      if (response.data.data) {
-        return response.data.data.courses || response.data.data || [];
-      }
-      
-      // Default return empty array if no valid format
-      return [];
     } catch (error) {
-      console.error('Error fetching courses:', error);
+      console.error('Error in getCourses:', error);
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         console.error('Response data:', error.response.data);
         console.error('Response status:', error.response.status);
         console.error('Response headers:', error.response.headers);
       } else if (error.request) {
-        // The request was made but no response was received
         console.error('No response received:', error.request);
       } else {
-        // Something happened in setting up the request that triggered an Error
         console.error('Error:', error.message);
       }
-      throw error; // Re-throw to be caught by the component
+      return { courses: [], error: error.message || 'Failed to fetch courses' };
     }
   },
 
@@ -97,8 +93,13 @@ const studentService = {
    * @returns {Promise<Object>} Enrollment confirmation
    */
   enrollCourse: async (courseId) => {
-    const response = await api.post('/students/enroll', { course_id: courseId });
-    return response.data;
+    try {
+      const response = await api.post('/students/enroll', { course_id: courseId });
+      return response.data;
+    } catch (error) {
+      console.error('Error enrolling in course:', error);
+      throw error;
+    }
   },
 
   /**
@@ -107,8 +108,13 @@ const studentService = {
    * @returns {Promise<Object>} Drop confirmation
    */
   dropCourse: async (courseId) => {
-    const response = await api.delete(`/students/enroll/${courseId}`);
-    return response.data;
+    try {
+      const response = await api.delete(`/students/enroll/${courseId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error dropping course:', error);
+      throw error;
+    }
   },
 
   /**
@@ -119,28 +125,32 @@ const studentService = {
    * @returns {Promise<Object>} Payment confirmation
    */
   makePayment: async (amount, paymentMethod = 'ONLINE', referenceNumber = '') => {
-    const response = await api.post('/students/pay', {
-      amount,
-      payment_method: paymentMethod,
-      reference_number: referenceNumber
-    });
-    return response.data;
+    try {
+      const response = await api.post('/students/pay', {
+        amount,
+        payment_method: paymentMethod,
+        reference_number: referenceNumber
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error making payment:', error);
+      throw error;
+    }
   },
 
-  /**
-   * Get payment history
-   * @returns {Promise<Object>} List of payments
-   */
   /**
    * Get payment history
    * @returns {Promise<Object>} List of payments
    */
   getPaymentHistory: async () => {
-    const response = await api.get('/students/payments');
-    return response.data;
-  },
-
-
+    try {
+      const response = await api.get('/students/payments');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      throw error;
+    }
+  }
 };
 
 export default studentService;

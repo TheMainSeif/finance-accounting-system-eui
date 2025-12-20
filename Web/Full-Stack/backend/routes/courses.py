@@ -71,33 +71,109 @@ def list_courses():
     }
     """
     try:
+        print("\n=== STARTING COURSE FETCH ===")
+        print(f"Request URL: {request.url}")
+        print(f"Request headers: {dict(request.headers)}")
+        
         faculty_id = request.args.get('faculty_id', type=int)
+        print(f"Faculty ID from query params: {faculty_id}")
+        
         query = Course.query
         
         # If faculty_id is provided in query params, filter by it
         if faculty_id:
+            print(f"Filtering courses by faculty_id: {faculty_id}")
             query = query.filter_by(faculty_id=faculty_id)
         # If user is authenticated and is a student, filter by their faculty
         else:
             try:
                 identity = get_jwt_identity()
+                print(f"JWT Identity: {identity}")
+                
                 if identity:
                     user = User.query.get(identity)
-                    if user and not user.is_admin and user.faculty_id:
-                        query = query.filter_by(faculty_id=user.faculty_id)
+                    print(f"Found user: {user.id if user else 'None'}")
+                    
+                    if user:
+                        print(f"User is admin: {user.is_admin}")
+                        print(f"User faculty_id: {getattr(user, 'faculty_id', 'N/A')}")
+                        
+                        if not user.is_admin and getattr(user, 'faculty_id', None):
+                            print(f"Filtering courses by user's faculty_id: {user.faculty_id}")
+                            query = query.filter_by(faculty_id=user.faculty_id)
+                        else:
+                            print("No faculty filter applied (admin or no faculty_id)")
+                else:
+                    print("No user identity found in JWT")
+                    
             except Exception as e:
                 print(f"Error checking user faculty: {str(e)}")
-                # Continue without faculty filter if there's an error
+                import traceback
+                traceback.print_exc()
         
+        print("Executing query...")
         courses = query.all()
+        print(f"Found {len(courses)} courses")
         
-        return jsonify({
-            "total_courses": len(courses),
-            "courses": [course.to_dict(include_faculty=True) for course in courses]
-        }), 200
+        # Safely serialize courses with error handling
+        serialized_courses = []
+        for course in courses:
+            try:
+                # Manually build course dictionary with safe attribute access
+                course_dict = {
+                    'id': course.id,
+                    'course_id': getattr(course, 'course_id', f'COURSE-{course.id}'),
+                    'name': getattr(course, 'name', 'Unnamed Course'),
+                    'description': getattr(course, 'description', ''),
+                    'credits': getattr(course, 'credits', 3),
+                    'total_fee': float(getattr(course, 'total_fee', 0.0)),
+                    'faculty_id': getattr(course, 'faculty_id', None),
+                    'faculty': None
+                }
+                
+                # Safely handle faculty data if it exists
+                if hasattr(course, 'faculty'):
+                    faculty = course.faculty
+                    if faculty:
+                        course_dict['faculty'] = {
+                            'id': getattr(faculty, 'id', None),
+                            'name': getattr(faculty, 'name', 'Unknown Faculty')
+                        }
+                
+                serialized_courses.append(course_dict)
+            except Exception as e:
+                print(f"Error serializing course {getattr(course, 'id', 'unknown')}: {str(e)}")
+                # Include minimal course info if serialization fails
+                serialized_courses.append({
+                    'id': getattr(course, 'id', 0),
+                    'course_id': f'ERROR-{getattr(course, "id", "X")}',
+                    'name': getattr(course, 'name', 'Unknown Course'),
+                    'credits': 3,
+                    'total_fee': 0.0,
+                    'error': f'Failed to serialize course: {str(e)}'
+                })
+        
+        response = {
+            "success": True,
+            "total_courses": len(serialized_courses),
+            "courses": serialized_courses
+        }
+        print("Sending response:", response)  # Debug log
+        return jsonify(response), 200
     
     except Exception as e:
-        return jsonify({"error": f"Failed to retrieve courses: {str(e)}"}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        print("\n=== ERROR IN LIST_COURSES ===")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        print(f"Traceback:\n{error_trace}")
+        print("===========================\n")
+        return jsonify({
+            "error": "Failed to retrieve courses",
+            "details": str(e),
+            "type": type(e).__name__
+        }), 500
 
 
 # ============================================================================
