@@ -69,7 +69,7 @@
 }
 
 .portal-card {
-  background-color: #f8fafc;
+  background-color: #edebeb;
   border: 2px solid #e2e8f0;
   border-radius: 0.75rem;
   padding: 2rem 1rem;
@@ -97,7 +97,8 @@
 
 .portal-title {
   font-weight: 700;
-  color: #334155;
+  color: #111827 !important; /* Force black color */
+  font-size: 1.125rem;
 }
 
 /* Login Form Styles */
