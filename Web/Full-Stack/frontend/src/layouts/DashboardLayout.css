@@ -9,7 +9,8 @@
 /* Sidebar */
 .dashboard-sidebar {
   width: 280px;
-  background-color: #0f172a; /* Very dark navy */
+  background-color: #0f172a;
+  /* Very dark navy */
   color: white;
   display: flex;
   flex-direction: column;
@@ -29,8 +30,10 @@
 }
 
 .logo-container {
-  width: 56px; /* Bigger */
-  height: 56px; /* Bigger */
+  width: 56px;
+  /* Bigger */
+  height: 56px;
+  /* Bigger */
   background-color: #f0f4f3;
   border-radius: 8px;
   display: flex;
@@ -40,8 +43,10 @@
 }
 
 .sidebar-logo {
-  width: 40px; /* Bigger */
-  height: 40px; /* Bigger */
+  width: 40px;
+  /* Bigger */
+  height: 40px;
+  /* Bigger */
   object-fit: contain;
 }
 
@@ -197,4 +202,3 @@
     margin-left: 240px;
   }
 }
-

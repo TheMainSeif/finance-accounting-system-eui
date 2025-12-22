@@ -121,35 +121,40 @@ def seed_database():
                 name="English Literature",
                 credits=3,
                 total_fee=4000.0,
-                description="Introduction to English Literature and Writing"
+                description="Introduction to English Literature and Writing",
+                faculty="Digital Arts"  # alyan's modification
             ),
             Course(
                 course_id="CS101",
                 name="Computer Science",
                 credits=4,
                 total_fee=5000.0,
-                description="Introduction to Computer Science and Programming"
+                description="Introduction to Programming",
+                faculty="Computer Science"  # alyan's modification
             ),
             Course(
                 course_id="DA101",
                 name="Data Analytics",
                 credits=3,
                 total_fee=4500.0,
-                description="Fundamentals of Data Analytics and Visualization"
+                description="Fundamentals of Data Analytics and Visualization",
+                faculty="Computer Science"  # alyan's modification
             ),
             Course(
                 course_id="MATH101",
                 name="Mathematics",
                 credits=4,
                 total_fee=4000.0,
-                description="Calculus and Advanced Mathematics"
+                description="Calculus 1",
+                faculty="Engineering"  # alyan's modification
             ),
             Course(
                 course_id="BUS101",
                 name="Business Management",
                 credits=3,
                 total_fee=3500.0,
-                description="Introduction to Business Management Principles"
+                description="Introduction to Business Management Principles",
+                faculty="Business Informatics"  # alyan's modification
             ),
         ]
         

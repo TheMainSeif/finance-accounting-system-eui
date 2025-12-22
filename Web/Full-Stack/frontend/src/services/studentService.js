@@ -59,16 +59,10 @@ const studentService = {
    * Get payment history
    * @returns {Promise<Object>} List of payments
    */
-  /**
-   * Get payment history
-   * @returns {Promise<Object>} List of payments
-   */
   getPaymentHistory: async () => {
     const response = await api.get('/students/payments');
     return response.data;
-  },
-
-
+  }
 };
 
 export default studentService;

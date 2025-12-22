@@ -595,6 +595,132 @@
               ]
             }
           }
+        },
+        {
+          "name": "Get Finance Summary (Dashboard)",
+          "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/finance/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "finance",
+                "summary"
+              ]
+            },
+            "description": "Returns overall financial summary statistics including total collected, total students, pending payments, and unpaid students with change percentages."
+          }
+        },
+        {
+          "name": "Get Recent Payments",
+          "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/finance/payments/recent?limit=5&offset=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "finance",
+                "payments",
+                "recent"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Number of payments to return (default: 10)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of payments to skip (default: 0)"
+                }
+              ]
+            },
+            "description": "Returns a list of recent payments with student information, faculty, and payment status."
+          }
+        },
+        {
+          "name": "Get Payments by Faculty",
+          "id": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/finance/payments/by-faculty",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "finance",
+                "payments",
+                "by-faculty"
+              ]
+            },
+            "description": "Returns payment collection progress grouped by faculty/department with collected amounts, totals, percentages, and color codes."
+          }
+        },
+        {
+          "name": "Get Bank Reconciliation",
+          "id": "d4e5f6a7-b8c9-0123-def4-456789012345",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/finance/bank-reconciliation?limit=10&offset=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "finance",
+                "bank-reconciliation"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of transactions to return (default: 10)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of transactions to skip (default: 0)"
+                }
+              ]
+            },
+            "description": "Returns bank transactions with reconciliation status (Matched/Pending/Unmatched). Note: This endpoint returns placeholder data until BankTransaction model is created."
+          }
         }
       ],
       "id": "1db27e02-2ec0-4366-9310-2e3a776c4078"

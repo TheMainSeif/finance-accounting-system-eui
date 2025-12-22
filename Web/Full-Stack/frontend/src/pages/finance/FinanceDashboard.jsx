@@ -1,41 +1,167 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { financeService } from '../../services/api-routes/dashboard-routes';
 import './FinanceDashboard.css';
 
 const FinanceDashboard = () => {
   const navigate = useNavigate();
+
+  // Loading and error states
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+
+  // Stats state - all values come from APIs
   const [stats, setStats] = useState({
-    totalCollected: 2400000,
-    totalCollectedChange: 12.5,
-    pendingPayments: 340000,
-    pendingPaymentsChange: -8.2,
-    totalStudents: 2847,
-    totalStudentsChange: 5.3,
-    unpaidStudents: 156,
-    unpaidStudentsChange: -3.1
+    totalCollected: 0,
+    totalCollectedChange: 0,
+    totalStudents: 0,
+    totalStudentsChange: 0,
+    pendingPayments: 0,
+    pendingPaymentsChange: 0,
+    unpaidStudents: 0,
+    unpaidStudentsChange: 0
   });
 
-  const [facultyPayments, setFacultyPayments] = useState([
-    { name: 'Engineering', collected: 850000, total: 1000000, color: '#10b981' },
-    { name: 'Computer Science', collected: 620000, total: 750000, color: '#fbbf24' },
-    { name: 'Digital Arts', collected: 280000, total: 400000, color: '#3b82f6' },
-    { name: 'Business Informatics', collected: 450000, total: 500000, color: '#10b981' }
-  ]);
+  // Faculty payments - from /api/finance/payments/by-faculty
+  const [facultyPayments, setFacultyPayments] = useState([]);
 
-  const [bankReconciliation, setBankReconciliation] = useState([
-    { id: 1, amount: 5200, status: 'Matched', date: 'Today', statusColor: '#10b981' },
-    { id: 2, amount: 3100, status: 'Pending', date: 'Yesterday', statusColor: '#fbbf24' },
-    { id: 3, amount: 1850, status: 'Unmatched', date: 'Dec 8', statusColor: '#ef4444' },
-    { id: 4, amount: 7400, status: 'Matched', date: 'Dec 7', statusColor: '#10b981' }
-  ]);
+  // Bank reconciliation - from /api/finance/bank-reconciliation
+  const [bankReconciliation, setBankReconciliation] = useState([]);
 
-  const [recentPayments, setRecentPayments] = useState([
-    { id: 'STD-001', name: 'John Smith', faculty: 'Engineering', amount: 2916, date: 'Dec 10, 2025', status: 'Paid' },
-    { id: 'STD-002', name: 'Sarah Johnson', faculty: 'Computer Science', amount: 3125, date: 'Dec 10, 2025', status: 'Paid' },
-    { id: 'STD-003', name: 'Michael Brown', faculty: 'Digital Arts', amount: 2500, date: 'Dec 9, 2025', status: 'Pending' },
-    { id: 'STD-004', name: 'Emily Davis', faculty: 'Business', amount: 2750, date: 'Dec 9, 2025', status: 'Paid' },
-    { id: 'STD-005', name: 'James Wilson', faculty: 'Engineering', amount: 2916, date: 'Dec 8, 2025', status: 'Failed' }
-  ]);
+  // Recent payments - from /api/finance/payments/recent
+  const [recentPayments, setRecentPayments] = useState([]);
+
+  // ============================================================================
+  // ✅ FETCH DATA FROM APIs
+  // ============================================================================
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // ✅ Fetch all dashboard data in parallel
+        const [summaryData, duesData, recentPaymentsData, facultyPaymentsData, bankData] = await Promise.all([
+          financeService.getSummary(),           // ✅ New API
+          financeService.getDues(),               // ✅ Existing API
+          financeService.getRecentPayments({ limit: 5 }),  // ✅ New API
+          financeService.getPaymentsByFaculty(),  // ✅ New API
+          financeService.getBankReconciliation({ limit: 4 })  // ✅ Bank Reconciliation API
+        ]);
+
+        // Update stats from summary API
+        setStats({
+          totalCollected: summaryData.total_collected || 0,
+          totalCollectedChange: summaryData.total_collected_change || 0,
+          totalStudents: summaryData.total_students || 0,
+          totalStudentsChange: summaryData.total_students_change || 0,
+          pendingPayments: summaryData.pending_payments || 0,
+          pendingPaymentsChange: summaryData.pending_payments_change || 0,
+          unpaidStudents: summaryData.unpaid_students || 0,
+          unpaidStudentsChange: summaryData.unpaid_students_change || 0,
+        });
+
+        // Update recent payments
+        if (recentPaymentsData.payments) {
+          setRecentPayments(recentPaymentsData.payments);
+        }
+
+        // Update faculty payments
+        if (facultyPaymentsData.faculties) {
+          setFacultyPayments(facultyPaymentsData.faculties);
+        }
+
+        // Update bank reconciliation
+        if (bankData && bankData.transactions && bankData.transactions.length > 0) {
+          // Format bank transactions for display
+          const formattedTransactions = bankData.transactions.map(txn => ({
+            id: txn.id,
+            amount: txn.amount,
+            status: txn.status,
+            date: formatRelativeDate(txn.date),
+            statusColor: getStatusColor(txn.status),
+            bank_ref: txn.bank_ref,
+            student_id: txn.student_id,
+            student_name: txn.student_name
+          }));
+          setBankReconciliation(formattedTransactions);
+        } else {
+          // Set empty array if no transactions (normal if database is empty)
+          setBankReconciliation([]);
+        }
+
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Helper function to format relative dates
+  const formatRelativeDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = Math.abs(now - date);
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) return 'Today';
+      if (diffDays === 1) return 'Yesterday';
+      if (diffDays < 7) return `${diffDays} days ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'matched':
+        return '#10b981';
+      case 'pending':
+        return '#fbbf24';
+      case 'unmatched':
+        return '#ef4444';
+      default:
+        return '#64748b';
+    }
+  };
+
+  // ============================================================================
+  // ✅ GENERATE REPORT - Connected to /api/finance/unpaid-report
+  // ============================================================================
+  const handleGenerateReport = async () => {
+    setReportLoading(true);
+    try {
+      const reportData = await financeService.getUnpaidReport();
+
+      // Create downloadable report
+      const reportContent = JSON.stringify(reportData, null, 2);
+      const blob = new Blob([reportContent], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `unpaid-report-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      alert('Report generated successfully!');
+    } catch (err) {
+      console.error('Error generating report:', err);
+      alert('Failed to generate report. Please try again.');
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   const formatCurrency = (amount) => {
     if (amount >= 1000000) {
@@ -59,6 +185,32 @@ const FinanceDashboard = () => {
     }
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="finance-dashboard">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="finance-dashboard">
+        <div className="error-container">
+          <p className="error-message">{error}</p>
+          <button onClick={() => window.location.reload()} className="retry-btn">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="finance-dashboard">
       {/* Header */}
@@ -67,11 +219,24 @@ const FinanceDashboard = () => {
           <h1 className="dashboard-title">Finance Dashboard</h1>
           <p className="dashboard-subtitle">Overview of university tuition payments</p>
         </div>
-        <button className="generate-report-btn">
-          <svg className="btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Generate Report
+        <button
+          className="generate-report-btn"
+          onClick={handleGenerateReport}
+          disabled={reportLoading}
+        >
+          {reportLoading ? (
+            <>
+              <div className="btn-spinner"></div>
+              Generating...
+            </>
+          ) : (
+            <>
+              <svg className="btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Generate Report
+            </>
+          )}
         </button>
       </div>
 
@@ -156,25 +321,31 @@ const FinanceDashboard = () => {
         <div className="content-card faculty-payments-card">
           <h2 className="card-title">Payments by Faculty</h2>
           <div className="faculty-payments-list">
-            {facultyPayments.map((faculty, index) => (
-              <div key={index} className="faculty-payment-item">
-                <div className="faculty-info">
-                  <span className="faculty-name">{faculty.name}</span>
-                  <span className="faculty-amount">
-                    {formatCurrency(faculty.collected)} / {formatCurrency(faculty.total)}
-                  </span>
+            {facultyPayments.length > 0 ? (
+              facultyPayments.map((faculty, index) => (
+                <div key={index} className="faculty-payment-item">
+                  <div className="faculty-info">
+                    <span className="faculty-name">{faculty.name}</span>
+                    <span className="faculty-amount">
+                      {formatCurrency(faculty.collected)} / {formatCurrency(faculty.total)}
+                    </span>
+                  </div>
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${faculty.total > 0 ? (faculty.collected / faculty.total) * 100 : 0}%`,
+                        backgroundColor: faculty.color
+                      }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    style={{
-                      width: `${(faculty.collected / faculty.total) * 100}%`,
-                      backgroundColor: faculty.color
-                    }}
-                  ></div>
-                </div>
+              ))
+            ) : (
+              <div className="empty-state">
+                <p>No faculty payment data available</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -187,15 +358,24 @@ const FinanceDashboard = () => {
             <h2 className="card-title">Bank Reconciliation</h2>
           </div>
           <div className="bank-reconciliation-list">
-            {bankReconciliation.map((transaction) => (
-              <div key={transaction.id} className="bank-transaction-item">
-                <div className="transaction-status-badge" style={{ backgroundColor: transaction.statusColor }}>
-                  {transaction.status}
+            {bankReconciliation.length > 0 ? (
+              bankReconciliation.map((transaction) => (
+                <div key={transaction.id} className="bank-transaction-item">
+                  <div className="transaction-status-badge" style={{ backgroundColor: transaction.statusColor }}>
+                    {transaction.status}
+                  </div>
+                  <div className="transaction-amount">${transaction.amount.toLocaleString()}</div>
+                  <div className="transaction-date">{transaction.date}</div>
                 </div>
-                <div className="transaction-amount">${transaction.amount.toLocaleString()}</div>
-                <div className="transaction-date">{transaction.date}</div>
+              ))
+            ) : (
+              <div className="empty-state">
+                <p>No bank transactions available.</p>
+                <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.5rem' }}>
+                  Sync bank data to get started with reconciliation.
+                </p>
               </div>
-            ))}
+            )}
           </div>
           <button
             className="view-all-btn"
@@ -222,20 +402,30 @@ const FinanceDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {recentPayments.map((payment) => (
-                <tr key={payment.id}>
-                  <td className="student-id">{payment.id}</td>
-                  <td className="student-name">{payment.name}</td>
-                  <td className="faculty-name">{payment.faculty}</td>
-                  <td className="amount">${payment.amount.toLocaleString()}</td>
-                  <td className="date">{payment.date}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusClass(payment.status)}`}>
-                      {payment.status}
-                    </span>
+              {recentPayments.length > 0 ? (
+                recentPayments.map((payment, index) => (
+                  <tr key={payment.payment_id || payment.id || `payment-${index}`}>
+                    <td className="student-id">{payment.id || `STD-${String(payment.student_id).padStart(3, '0')}`}</td>
+                    <td className="student-name">{payment.student_name || payment.name || 'Unknown'}</td>
+                    <td className="faculty-name">{payment.faculty || 'Unknown'}</td>
+                    <td className="amount">${(payment.amount || 0).toLocaleString()}</td>
+                    <td className="date">{payment.date || 'N/A'}</td>
+                    <td>
+                      <span className={`status-badge ${getStatusClass(payment.status)}`}>
+                        {payment.status || 'Paid'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="empty-state-cell">
+                    <div className="empty-state">
+                      <p>No recent payments found</p>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

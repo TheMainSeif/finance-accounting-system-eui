@@ -331,6 +331,7 @@
     grid-template-columns: 1fr;
   }
 }
+<<<<<<< HEAD
 
 /* Input with Icon Styles */
 .input-with-icon {
@@ -370,3 +371,5 @@
   display: block;
   font-weight: 500;
 }
+=======
+>>>>>>> finance-frontend

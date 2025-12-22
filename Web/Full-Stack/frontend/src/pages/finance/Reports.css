@@ -5,6 +5,60 @@
 }
 
 /* ========================================================================
+   LOADING & DISABLED STATES
+   ======================================================================== */
+.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-disabled:hover {
+    transform: none;
+    background: white;
+    border-color: #e2e8f0;
+    color: #64748b;
+}
+
+.btn-loading {
+    font-weight: bold;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.coming-soon-badge {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 0.25rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.generate-btn:disabled,
+.export-all-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.generate-btn:disabled:hover {
+    transform: none;
+    box-shadow: 0 4px 6px -1px rgba(251, 191, 36, 0.3);
+}
+
+/* ========================================================================
    PAGE HEADER
    ======================================================================== */
 .page-header {

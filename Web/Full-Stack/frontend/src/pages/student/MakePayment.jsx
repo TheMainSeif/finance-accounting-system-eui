@@ -11,7 +11,10 @@ const MakePayment = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
+<<<<<<< HEAD
   const [fieldErrors, setFieldErrors] = useState({});
+=======
+>>>>>>> finance-frontend
 
   // Card details
   const [cardNumber, setCardNumber] = useState('');
@@ -47,6 +50,7 @@ const MakePayment = () => {
 
     // Validate card details
     if (paymentMethod === 'card') {
+<<<<<<< HEAD
       const errors = {};
       let isValid = true;
 
@@ -92,10 +96,17 @@ const MakePayment = () => {
 
       setFieldErrors(errors);
       if (!isValid) return;
+=======
+      if (!cardNumber || !expiryDate || !cvv || !cardholderName) {
+        setError('Please fill in all card details');
+        return;
+      }
+>>>>>>> finance-frontend
     }
 
     setProcessing(true);
     setError(null);
+<<<<<<< HEAD
     setFieldErrors({});
 
     try {
@@ -104,6 +115,14 @@ const MakePayment = () => {
         amount: outstandingBalance,
         payment_method: paymentMethod === 'card' ? 'ONLINE' : 'MANUAL',
         reference_number: `PAY-${Date.now()}-${last4}`
+=======
+
+    try {
+      const paymentData = {
+        amount: outstandingBalance,
+        payment_method: paymentMethod === 'card' ? 'ONLINE' : 'MANUAL',
+        reference_number: `PAY-${Date.now()}`
+>>>>>>> finance-frontend
       };
 
       const response = await studentService.makePayment(
@@ -185,6 +204,15 @@ const MakePayment = () => {
                     </svg>
                     <span>Bank Transfer</span>
                   </div>
+<<<<<<< HEAD
+=======
+                  <div className="payment-method-card disabled">
+                    <svg className="method-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>Cash</span>
+                  </div>
+>>>>>>> finance-frontend
                 </div>
               </div>
 
@@ -200,6 +228,7 @@ const MakePayment = () => {
 
                   <div className="form-group">
                     <label>Card Number</label>
+<<<<<<< HEAD
                     <div className="input-with-icon">
                       <input
                         type="text"
@@ -220,6 +249,16 @@ const MakePayment = () => {
                       </svg>
                     </div>
                     {fieldErrors.cardNumber && <span className="error-message">{fieldErrors.cardNumber}</span>}
+=======
+                    <input
+                      type="text"
+                      placeholder="1234 5678 9012 3456"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value.replace(/\s/g, '').slice(0, 16))}
+                      maxLength="16"
+                      required
+                    />
+>>>>>>> finance-frontend
                   </div>
 
                   <div className="form-row">
@@ -229,6 +268,7 @@ const MakePayment = () => {
                         type="text"
                         placeholder="MM/YY"
                         value={expiryDate}
+<<<<<<< HEAD
                         onChange={(e) => {
                             let val = e.target.value;
                             if (val.length < expiryDate.length) { setExpiryDate(val); return; }
@@ -280,6 +320,23 @@ const MakePayment = () => {
                         </svg>
                       </div>
                       {fieldErrors.cvv && <span className="error-message">{fieldErrors.cvv}</span>}
+=======
+                        onChange={(e) => setExpiryDate(e.target.value)}
+                        maxLength="5"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>CVV</label>
+                      <input
+                        type="text"
+                        placeholder="123"
+                        value={cvv}
+                        onChange={(e) => setCvv(e.target.value.slice(0, 3))}
+                        maxLength="3"
+                        required
+                      />
+>>>>>>> finance-frontend
                     </div>
                   </div>
 
@@ -287,6 +344,7 @@ const MakePayment = () => {
                     <label>Cardholder Name</label>
                     <input
                       type="text"
+<<<<<<< HEAD
                       placeholder="JOHN SMITH"
                       value={cardholderName}
                       onChange={(e) => {
@@ -297,6 +355,13 @@ const MakePayment = () => {
                       className={fieldErrors.cardholderName ? 'invalid' : ''}
                     />
                     {fieldErrors.cardholderName && <span className="error-message">{fieldErrors.cardholderName}</span>}
+=======
+                      placeholder="John Smith"
+                      value={cardholderName}
+                      onChange={(e) => setCardholderName(e.target.value)}
+                      required
+                    />
+>>>>>>> finance-frontend
                   </div>
                 </div>
               )}

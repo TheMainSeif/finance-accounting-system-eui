@@ -1,4 +1,4 @@
-.finance-dashboard-container {
+/*.finance-dashboard-container {
     display: flex;
     min-height: 100vh;
     background-color: #f8fafc;
@@ -33,7 +33,7 @@
     margin-bottom: 0.75rem;
 }
 
-.sidebar-logo {
+/*.sidebar-logo {
     width: 3rem;
     height: 3rem;
     background: white;
@@ -41,18 +41,18 @@
     padding: 0.5rem;
 }
 
-.portal-info {
+/*.portal-info {
     text-align: center;
 }
 
-.sidebar-portal-title {
+/*.sidebar-portal-title {
     font-size: 1.25rem;
     font-weight: 700;
     color: white;
     margin-bottom: 0.125rem;
 }
 
-.sidebar-portal-subtitle {
+/*.sidebar-portal-subtitle {
     font-size: 0.75rem;
     color: #94a3b8;
     margin: 0;
@@ -104,7 +104,7 @@
     box-shadow: none !important;
 }
 
-.nav-item.active .nav-link {
+/*.nav-item.active .nav-link {
     background: #fbbf24;
     color: #1e293b;
     font-weight: 600;
@@ -114,12 +114,12 @@
 }
 
 .nav-item.active .nav-link:focus,
-.nav-item.active .nav-link:focus-visible {
+/*.nav-item.active .nav-link:focus-visible {
     outline: none !important;
     box-shadow: none !important;
 }
 
-.nav-icon {
+/*.nav-icon {
     width: 1.25rem;
     height: 1.25rem;
     stroke-width: 2;
@@ -205,7 +205,7 @@
     height: 1.125rem;
 }
 
-/* ========================================================================
+/*========================================================================
    MAIN CONTENT
    ======================================================================== */
 .finance-main {
@@ -214,7 +214,7 @@
     min-height: 100vh;
 }
 
-/* ========================================================================
+/*========================================================================
    RESPONSIVE DESIGN
    ======================================================================== */
 @media (max-width: 768px) {

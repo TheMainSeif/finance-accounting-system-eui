@@ -12,7 +12,10 @@ const CourseRegistration = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [dropLoading, setDropLoading] = useState(null); // ID of course being dropped
+<<<<<<< HEAD
   const [hasPayments, setHasPayments] = useState(false); // Track if student has made any payments
+=======
+>>>>>>> finance-frontend
 
   useEffect(() => {
     fetchData();
@@ -21,10 +24,16 @@ const CourseRegistration = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+<<<<<<< HEAD
       const [coursesData, statusData, paymentData] = await Promise.all([
         studentService.getCourses(),
         studentService.getDashboardStatus(),
         studentService.getPaymentHistory()
+=======
+      const [coursesData, statusData] = await Promise.all([
+        studentService.getCourses(),
+        studentService.getDashboardStatus()
+>>>>>>> finance-frontend
       ]);
       
       const allCourses = coursesData.courses || [];
@@ -33,10 +42,13 @@ const CourseRegistration = () => {
       const enrolledIds = statusData.enrollments.map(e => e.course_id);
       setEnrolledCourseIds(enrolledIds);
       
+<<<<<<< HEAD
       // Check if student has made any payments
       const paymentCount = paymentData.payments?.length || 0;
       setHasPayments(paymentCount > 0);
       
+=======
+>>>>>>> finance-frontend
       // Clear selections that are now enrolled (in case of re-fetch after submit)
       setSelectedCourses(prev => prev.filter(c => !enrolledIds.includes(c.id)));
 
@@ -221,6 +233,7 @@ const CourseRegistration = () => {
 
                   {isEnrolled && (
                     <button 
+<<<<<<< HEAD
                         className={`btn-drop ${hasPayments ? 'disabled' : ''}`}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -230,6 +243,14 @@ const CourseRegistration = () => {
                         }}
                         disabled={dropLoading === course.id || hasPayments}
                         title={hasPayments ? 'Cannot drop courses after making payments' : 'Drop this course'}
+=======
+                        className="btn-drop"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleDropCourse(course.id);
+                        }}
+                        disabled={dropLoading === course.id}
+>>>>>>> finance-frontend
                     >
                         {dropLoading === course.id ? 'Dropping...' : 'Drop'}
                     </button>

@@ -29,7 +29,6 @@ function App() {
 
           {/* Protected Student Routes */}
           <Route element={<ProtectedRoute role="student" />}>
-
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/courses" element={<CourseRegistration />} />
             <Route path="/student/fees" element={<CalculatedFees />} />
@@ -48,7 +47,6 @@ function App() {
             <Route path="/finance/bank-reconciliation" element={<FinanceDashboardLayout><BankReconciliation /></FinanceDashboardLayout>} />
             <Route path="/finance/reports" element={<FinanceDashboardLayout><Reports /></FinanceDashboardLayout>} />
             <Route path="/finance/unpaid-students" element={<FinanceDashboardLayout><UnpaidStudents /></FinanceDashboardLayout>} />
-
           </Route>
         </Routes>
       </Router>
