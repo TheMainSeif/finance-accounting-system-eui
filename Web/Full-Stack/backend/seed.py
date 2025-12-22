@@ -7,7 +7,7 @@ Usage:
 """
 
 from app import create_app, db
-from models import User, Course, Enrollment, Payment, Notification, ActionLog
+from models import User, Course, Enrollment, Payment, Notification, ActionLog, Faculty
 from datetime import datetime, timedelta
 from sqlalchemy import text
 
@@ -48,64 +48,77 @@ def seed_database():
         db.drop_all()
         db.create_all()
         
+        # Create Faculties
+        print("Creating faculties...")
+        faculties = [
+            Faculty(
+                name="Computer and Information Sciences",
+                code="CIS",
+                description="Faculty of Computer and Information Sciences, offering programs in Computer Science, Software Engineering, and Data Science."
+            ),
+            Faculty(
+                name="Digital Arts and Design",
+                code="DAD",
+                description="Faculty of Digital Arts and Design, focusing on creative digital media, animation, and design."
+            ),
+            Faculty(
+                name="Business Informatics",
+                code="BI",
+                description="Faculty of Business Informatics, combining business administration with information technology."
+            ),
+            Faculty(
+                name="Engineering",
+                code="ENG",
+                description="Faculty of Engineering, offering various engineering disciplines and specializations."
+            )
+        ]
+        db.session.add_all(faculties)
+        db.session.commit()
+        
+        # Get faculty IDs for reference
+        cis_faculty = Faculty.query.filter_by(code="CIS").first()
+        dad_faculty = Faculty.query.filter_by(code="DAD").first()
+        bi_faculty = Faculty.query.filter_by(code="BI").first()
+        eng_faculty = Faculty.query.filter_by(code="ENG").first()
+        
+        if not all([cis_faculty, dad_faculty, bi_faculty, eng_faculty]):
+            raise ValueError("Failed to create all required faculties")
+        
         print("Seeding database with sample data...\n")
         
         # ====================================================================
         # Create Sample Users
         # ====================================================================
         print("Creating users...")
-        
-        # Admin user
+        # Create Admin User
+        print("Creating admin user...")
         admin = User(
             username="admin",
-            email="admin@finance.edu",
+            email="admin@example.com",
             password_hash=User.generate_hash("admin123"),
             is_admin=True,
-            dues_balance=0.0
+            faculty=None  # Admin doesn't need to be in a faculty
         )
         db.session.add(admin)
         
-        # Student users
-        students = [
-            User(
-                username="student1",
-                email="student1@edu.com",
-                password_hash=User.generate_hash("pass123"),
-                is_admin=False,
-                dues_balance=0.0
-            ),
-            User(
-                username="student2",
-                email="student2@edu.com",
-                password_hash=User.generate_hash("pass123"),
-                is_admin=False,
-                dues_balance=0.0
-            ),
-            User(
-                username="student3",
-                email="student3@edu.com",
-                password_hash=User.generate_hash("pass123"),
-                is_admin=False,
-                dues_balance=0.0
-            ),
-            User(
-                username="student4",
-                email="student4@edu.com",
-                password_hash=User.generate_hash("pass123"),
-                is_admin=False,
-                dues_balance=0.0
-            ),
-            User(
-                username="student5",
-                email="student5@edu.com",
-                password_hash=User.generate_hash("pass123"),
-                is_admin=False,
-                dues_balance=0.0
-            ),
-        ]
+        # Create Sample Students
+        print("Creating sample students...")
+        students = []
+        faculties = [cis_faculty, dad_faculty, bi_faculty, eng_faculty]
         
-        for student in students:
-            db.session.add(student)
+        for i in range(1, 11):
+            # Distribute students across faculties
+            faculty = faculties[i % len(faculties)]
+            student = User(
+                username=f"student{i}",
+                email=f"student{i}@example.com",
+                password_hash=User.generate_hash(f"pass123"),
+                is_admin=False,
+                faculty=faculty,
+                dues_balance=float(1000 - (i * 50))  # Vary the dues balance
+            )
+            students.append(student)
+        db.session.add_all(students)
         
         db.session.commit()
         print(f"✓ Created 1 admin and {len(students)} student users")
@@ -113,53 +126,103 @@ def seed_database():
         # ====================================================================
         # Create Sample Courses
         # ====================================================================
-        print("\nCreating courses...")
+        print("Creating sample courses...")
+        courses = []
         
-        courses = [
-            Course(
-                course_id="ENG101",
-                name="English Literature",
-                credits=3,
-                total_fee=4000.0,
-                description="Introduction to English Literature and Writing",
-                faculty="Digital Arts"  # alyan's modification
-            ),
+        # CIS Courses
+        cis_courses = [
             Course(
                 course_id="CS101",
-                name="Computer Science",
-                credits=4,
-                total_fee=5000.0,
-                description="Introduction to Programming",
-                faculty="Computer Science"  # alyan's modification
-            ),
-            Course(
-                course_id="DA101",
-                name="Data Analytics",
+                name="Introduction to Computer Science",
                 credits=3,
-                total_fee=4500.0,
-                description="Fundamentals of Data Analytics and Visualization",
-                faculty="Computer Science"  # alyan's modification
+                total_fee=1200.00,
+                faculty=cis_faculty,
+                description="Fundamentals of computer science and programming"
             ),
             Course(
-                course_id="MATH101",
-                name="Mathematics",
+                course_id="CS201",
+                name="Data Structures and Algorithms",
                 credits=4,
-                total_fee=4000.0,
-                description="Calculus 1",
-                faculty="Engineering"  # alyan's modification
+                total_fee=1400.00,
+                faculty=cis_faculty,
+                description="Advanced data structures and algorithm analysis"
             ),
             Course(
-                course_id="BUS101",
-                name="Business Management",
+                course_id="CS301",
+                name="Database Systems",
                 credits=3,
-                total_fee=3500.0,
-                description="Introduction to Business Management Principles",
-                faculty="Business Informatics"  # alyan's modification
-            ),
+                total_fee=1300.00,
+                faculty=cis_faculty,
+                description="Design and implementation of database systems"
+            )
         ]
         
-        for course in courses:
-            db.session.add(course)
+        # DAD Courses
+        dad_courses = [
+            Course(
+                course_id="DAD101",
+                name="Digital Design Fundamentals",
+                credits=3,
+                total_fee=1500.00,
+                faculty=dad_faculty,
+                description="Introduction to digital design principles and tools"
+            ),
+            Course(
+                course_id="ANI201",
+                name="3D Animation",
+                credits=4,
+                total_fee=1800.00,
+                faculty=dad_faculty,
+                description="Creating 3D animations using industry-standard software"
+            )
+        ]
+        
+        # BI Courses
+        bi_courses = [
+            Course(
+                course_id="BI101",
+                name="Business Analytics",
+                credits=3,
+                total_fee=1400.00,
+                faculty=bi_faculty,
+                description="Using data analysis for business decision making"
+            ),
+            Course(
+                course_id="BI201",
+                name="Enterprise Systems",
+                credits=3,
+                total_fee=1500.00,
+                faculty=bi_faculty,
+                description="Overview of enterprise resource planning systems"
+            )
+        ]
+        
+        # Engineering Courses
+        eng_courses = [
+            Course(
+                course_id="ENG101",
+                name="Engineering Mathematics I",
+                credits=4,
+                total_fee=1300.00,
+                faculty=eng_faculty,
+                description="Mathematical methods for engineering applications"
+            ),
+            Course(
+                course_id="MECH201",
+                name="Thermodynamics",
+                credits=4,
+                total_fee=1600.00,
+                faculty=eng_faculty,
+                description="Fundamentals of energy and thermodynamics"
+            )
+        ]
+        
+        # Add all courses to the list
+        courses.extend(cis_courses)
+        courses.extend(dad_courses)
+        courses.extend(bi_courses)
+        courses.extend(eng_courses)
+        db.session.add_all(courses)
         
         db.session.commit()
         print(f"✓ Created {len(courses)} courses")
@@ -169,67 +232,31 @@ def seed_database():
         # ====================================================================
         print("\nCreating enrollments...")
         
-        enrollments = [
-            # Student 1: 2 courses
-            Enrollment(
-                student_id=students[0].id,
-                course_id=courses[0].id,
-                course_fee=courses[0].total_fee,
-                status='ACTIVE'
-            ),
-            Enrollment(
-                student_id=students[0].id,
-                course_id=courses[1].id,
-                course_fee=courses[1].total_fee,
-                status='ACTIVE'
-            ),
-            # Student 2: 1 course
-            Enrollment(
-                student_id=students[1].id,
-                course_id=courses[1].id,
-                course_fee=courses[1].total_fee,
-                status='ACTIVE'
-            ),
-            # Student 3: 3 courses
-            Enrollment(
-                student_id=students[2].id,
-                course_id=courses[0].id,
-                course_fee=courses[0].total_fee,
-                status='ACTIVE'
-            ),
-            Enrollment(
-                student_id=students[2].id,
-                course_id=courses[2].id,
-                course_fee=courses[2].total_fee,
-                status='ACTIVE'
-            ),
-            Enrollment(
-                student_id=students[2].id,
-                course_id=courses[3].id,
-                course_fee=courses[3].total_fee,
-                status='ACTIVE'
-            ),
-            # Student 4: 2 courses
-            Enrollment(
-                student_id=students[3].id,
-                course_id=courses[2].id,
-                course_fee=courses[2].total_fee,
-                status='ACTIVE'
-            ),
-            Enrollment(
-                student_id=students[3].id,
-                course_id=courses[4].id,
-                course_fee=courses[4].total_fee,
-                status='ACTIVE'
-            ),
-            # Student 5: 1 course
-            Enrollment(
-                student_id=students[4].id,
-                course_id=courses[3].id,
-                course_fee=courses[3].total_fee,
-                status='ACTIVE'
-            ),
-        ]
+        enrollments = []
+        import random
+        
+        for student in students:
+            # Get courses for this student's faculty
+            faculty_courses = [c for c in courses if c.faculty_id == student.faculty_id]
+            
+            if faculty_courses:
+                # Enroll in 1 to all available courses for their faculty
+                # For deterministic seeding, let's just pick the first 1-2 courses
+                num_courses = min(len(faculty_courses), 2)
+                courses_to_enroll = faculty_courses[:num_courses]
+                
+                for course in courses_to_enroll:
+                    enrollments.append(
+                        Enrollment(
+                            student_id=student.id,
+                            course_id=course.id,
+                            course_fee=course.total_fee,
+                            status='ACTIVE'
+                        )
+                    )
+        
+        # Add manually specified complex enrollments for specific testing scenarios if needed
+        # But for now, the dynamic logic above covers all students correctly.
         
         for enrollment in enrollments:
             db.session.add(enrollment)

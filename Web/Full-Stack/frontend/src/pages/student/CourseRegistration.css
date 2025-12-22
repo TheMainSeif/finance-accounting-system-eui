@@ -161,7 +161,8 @@
   background-color: #f9fafb;
   border-color: #e5e7eb;
   cursor: default;
-  opacity: 1; /* Keep full opacity to show button clearly */
+  opacity: 1;
+  /* Keep full opacity to show button clearly */
 }
 
 .course-card.enrolled:hover {
@@ -187,17 +188,18 @@
 }
 
 .btn-drop:disabled {
-<<<<<<< HEAD
+
   opacity: 0.5;
   cursor: not-allowed;
   background-color: #f3f4f6;
   color: #9ca3af;
   border-color: #e5e7eb;
-=======
+
   opacity: 0.6;
   cursor: wait;
->>>>>>> finance-frontend
+
 }
+
 
 .enrolled-badge {
   width: 24px;
