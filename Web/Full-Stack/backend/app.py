@@ -5,12 +5,15 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 
-def create_app():
+def create_app(config_updates=None):
     """
     Application factory function that creates and configures the Flask app.
     """
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    if config_updates:
+        app.config.update(config_updates)
     
     # Enable CORS for cross-origin requests
     CORS(app)

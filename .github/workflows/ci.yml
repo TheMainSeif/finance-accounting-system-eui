@@ -1,4 +1,4 @@
-name: Build and Quality Check
+name: Strong CI/CD Pipeline
 
 on:
   push:
@@ -7,36 +7,98 @@ on:
     branches: [main, development, testing]
 
 jobs:
-  backend-check:
+  lint:
+    name: Linting and Standards
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install dependencies
+      - name: Install Backend Linter
+        run: pip install flake8
+      - name: Lint Backend
         run: |
           cd Web/Full-Stack/backend
-          pip install -r requirements.txt
-      - name: Syntax Check
-        run: |
-          cd Web/Full-Stack/backend
-          python -m compileall .
+          flake8 .
 
-  frontend-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Install dependencies
+      - name: Install Frontend Linter
         run: |
           cd Web/Full-Stack/frontend
           npm install
-      - name: Build
+      - name: Lint Frontend
         run: |
           cd Web/Full-Stack/frontend
+          npm run lint
+
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Security Scanners
+        run: pip install safety
+      - name: Backend Security Scan
+        run: |
+          cd Web/Full-Stack/backend
+          # Check for known vulnerabilities in dependencies
+          safety check
+
+      - name: Frontend Security Scan
+        run: |
+          cd Web/Full-Stack/frontend
+          npm audit --audit-level=high
+
+  test:
+    name: Automated Testing
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Dependencies
+        run: |
+          cd Web/Full-Stack/backend
+          pip install -r requirements.txt
+          pip install pytest pytest-flask pytest-cov
+      - name: Run Backend Tests
+        run: |
+          cd Web/Full-Stack/backend
+          pytest --cov=routes tests/
+
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build Frontend
+        run: |
+          cd Web/Full-Stack/frontend
+          npm install
           npm run build
+
+      - name: Backend Syntax Check
+        run: |
+          cd Web/Full-Stack/backend
+          python -m compileall .

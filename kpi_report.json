@@ -1,0 +1,10 @@
+{
+    "project": "Finance Accounting System",
+    "timestamp": "2025-12-23T21:00:11.128797",
+    "kpis": {
+        "reliability_score": "PASS",
+        "quality_score": "FAIL",
+        "functional_score": "PASS"
+    },
+    "overall_health": "NEEDS_ATTENTION"
+}
