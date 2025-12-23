@@ -2,9 +2,9 @@ name: Build and Quality Check
 
 on:
   push:
-    branches: [main, development]
+    branches: [main, development, testing]
   pull_request:
-    branches: [main, development]
+    branches: [main, development, testing]
 
 jobs:
   backend-check:
