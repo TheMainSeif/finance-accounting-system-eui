@@ -1,0 +1,42 @@
+name: Build and Quality Check
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+jobs:
+  backend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd Web/Full-Stack/backend
+          pip install -r requirements.txt
+      - name: Syntax Check
+        run: |
+          cd Web/Full-Stack/backend
+          python -m compileall .
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: |
+          cd Web/Full-Stack/frontend
+          npm install
+      - name: Build
+        run: |
+          cd Web/Full-Stack/frontend
+          npm run build
