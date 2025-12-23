@@ -1,7 +1,8 @@
 #!/bin/sh
 # Replace PORT_PLACEHOLDER in nginx.conf template
-echo "Configuring Nginx to listen on port ${PORT:-80}..."
+echo "Configuring Nginx to listen on port ${PORT:-80} and proxy to ${BACKEND_URL}..."
 sed -i "s/PORT_PLACEHOLDER/${PORT:-80}/g" /etc/nginx/conf.d/default.conf
+sed -i "s/BACKEND_URL_PLACEHOLDER/${BACKEND_URL}/g" /etc/nginx/conf.d/default.conf
 
 # Start nginx
 exec nginx -g "daemon off;"
