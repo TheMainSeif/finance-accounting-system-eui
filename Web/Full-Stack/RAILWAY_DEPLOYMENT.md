@@ -2,16 +2,27 @@
 
 This guide explains how to deploy your full-stack application to Railway.
 
-## Prerequisite: Railway CLI (Optional but Recommended)
-
-You can manage your deployment via the Railway Dashboard or the CLI.
-
 ## Step 1: Initialize Railway Project
 
 1. Go to [Railway Dashboard](https://railway.app/).
 2. Click **New Project**.
 3. Select **Deploy from GitHub repo** and choose your repository.
-4. Railway will detect the `railway.toml` file and set up the services.
+
+### For Monorepo Setup (Two Services)
+
+You should create **two** separate services in the same project pointing to the same repository:
+
+#### A. Backend Service (API)
+
+- **Repo**: Your GitHub repository.
+- **Root Directory**: `Web/Full-Stack/backend`
+- Railway will automatically detect the `backend/railway.toml` and build the container.
+
+#### B. Frontend Service
+
+- **Repo**: Your GitHub repository.
+- **Root Directory**: `Web/Full-Stack/frontend`
+- Railway will automatically detect the `frontend/railway.toml` and build the container.
 
 ## Step 2: Provision MySQL Database
 
