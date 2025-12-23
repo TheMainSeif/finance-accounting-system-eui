@@ -52,39 +52,39 @@
 }
 
 /* ========================================================================
-   PAGE HEADER
+   PAGE HEADER - Scoped to Reports
    ======================================================================== */
-.page-header {
+.reports-page .page-header {
     margin-bottom: 2rem;
 }
 
-.header-content {
+.reports-page .header-content {
     flex: 1;
 }
 
-.page-title {
+.reports-page .page-title {
     font-size: 2rem;
     font-weight: 700;
     color: #1e293b;
     margin-bottom: 0.25rem;
 }
 
-.page-subtitle {
+.reports-page .page-subtitle {
     font-size: 0.95rem;
     color: #64748b;
 }
 
 /* ========================================================================
-   PREDEFINED REPORTS GRID
+   PREDEFINED REPORTS GRID - Scoped to Reports
    ======================================================================== */
-.reports-grid {
+.reports-page .reports-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
-.report-card {
+.reports-page .report-card {
     background: white;
     padding: 1.5rem;
     border-radius: 1rem;
@@ -95,7 +95,7 @@
     transition: all 0.3s ease;
 }
 
-.report-card:hover {
+.reports-page .report-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
 }

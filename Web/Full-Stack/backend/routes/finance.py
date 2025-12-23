@@ -1,36 +1,16 @@
 from flask import Blueprint, request, jsonify, send_file, Response, current_app
-from models import db, User, Payment, Enrollment, Notification, ActionLog, Course, FeeStructure, BankTransaction, GeneratedReport, Penalty  # alyan's modification: Added Course, FeeStructure, BankTransaction, GeneratedReport, and Penalty imports
+from models import db, User, Payment, Enrollment, Notification, ActionLog, Course, Faculty, FeeStructure, BankTransaction, GeneratedReport, Penalty  # alyan's modification: Added Course, Faculty, FeeStructure, BankTransaction, GeneratedReport, and Penalty imports
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import and_, func, desc, cast, String
-from functools import wraps
 import json
 import os
 import uuid
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.rbac import require_finance, require_admin  # SECURITY: Import role-based access control (require_admin is alias for backward compatibility)
 
 finance_bp = Blueprint("finance", __name__)
-
-
-# ============================================================================
-# HELPER FUNCTION: Check if user is admin (RBAC)
-# ============================================================================
-def require_admin(fn):
-    """Decorator to enforce admin-only access."""
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        from models import User
-        
-        identity = get_jwt_identity()
-        if not identity:
-            return jsonify({"error": "Authentication required"}), 401
-            
-        # Get user from database to check admin status
-        user = User.query.get(identity)
-        if not user or not user.is_admin:
-            return jsonify({"error": "Admin access required"}), 403
-            
-        return fn(*args, **kwargs)
-    return wrapper
 
 
 # ============================================================================
@@ -464,7 +444,8 @@ def record_external_payment():
         db.session.add(payment)
         
         # Update student's dues_balance
-        student.dues_balance = max(0, student.dues_balance - amount)
+        # Calculate new balance (allow negative for overpayment/credit)
+        student.dues_balance = student.dues_balance - amount
         student.updated_at = datetime.now(timezone.utc)
         
         # Create action log
@@ -726,31 +707,10 @@ def get_recent_payments():
         payments_list = []
         for payment, student in payments_data:
             # Get student's enrollments to determine faculty
-            # alyan's modification: Use faculty field from Course model if available
             enrollment = Enrollment.query.filter_by(student_id=student.id).first()
             faculty = "Unknown"
-            if enrollment and enrollment.course:
-                # alyan's modification: Use faculty field from Course model
-                try:
-                    if hasattr(enrollment.course, 'faculty') and enrollment.course.faculty:
-                        faculty = enrollment.course.faculty
-                    else:
-                        raise AttributeError  # Fall through to name-based mapping
-                except AttributeError:
-                    # Fallback: Map course names to faculties (temporary solution)
-                    course_name = enrollment.course.name.lower()
-                    if 'computer' in course_name or 'cs' in course_name:
-                        faculty = "Computer Science"
-                    elif 'english' in course_name or 'literature' in course_name:
-                        faculty = "Digital Arts"
-                    elif 'data' in course_name or 'analytics' in course_name:
-                        faculty = "Computer Science"
-                    elif 'business' in course_name or 'management' in course_name:
-                        faculty = "Business"
-                    elif 'math' in course_name:
-                        faculty = "Engineering"
-                    else:
-                        faculty = "Engineering"  # Default
+            if enrollment and enrollment.course and enrollment.course.faculty:
+                faculty = enrollment.course.faculty.name
             
             # Format date
             payment_date = payment.payment_date.strftime('%b %d, %Y') if payment.payment_date else 'N/A'
@@ -807,29 +767,11 @@ def get_payments_by_faculty():
     }
     """
     try:
-        # alyan's modification: Use faculty field from Course model if available
+        # Helper function to get faculty name from course
         def get_faculty_from_course(course):
-            # Check if faculty field exists and has a value
-            try:
-                if hasattr(course, 'faculty') and course.faculty:
-                    return course.faculty
-            except AttributeError:
-                pass  # Fall through to name-based mapping
-            
-            # Fallback: Map course names to faculties (temporary solution)
-            course_lower = course.name.lower()
-            if 'computer' in course_lower or 'cs' in course_lower:
-                return "Computer Science"
-            elif 'english' in course_lower or 'literature' in course_lower:
-                return "Digital Arts"
-            elif 'data' in course_lower or 'analytics' in course_lower:
-                return "Computer Science"
-            elif 'business' in course_lower or 'management' in course_lower:
-                return "Business Informatics"
-            elif 'math' in course_lower:
-                return "Engineering"
-            else:
-                return "Engineering"  # Default
+            if course and course.faculty:
+                return course.faculty.name
+            return "Unknown"
         
         # Get all enrollments with course info
         # alyan's modification: Added error handling for database query
@@ -1100,11 +1042,11 @@ def get_all_students():
         # Apply pagination
         students = query.offset(offset).limit(limit).all()
         
-        # Get all unique faculties from courses for the filter dropdown
-        all_faculties = db.session.query(Course.faculty).distinct().filter(
-            Course.faculty.isnot(None)
-        ).all()
-        faculties_list = [f[0] for f in all_faculties if f[0]]
+        # Get all unique faculties from Faculty table for the filter dropdown
+        # alyan's modification: Fixed to query Faculty table directly since Course.faculty is now a relationship
+        from models import Faculty
+        all_faculties = Faculty.query.all()
+        faculties_list = [f.name for f in all_faculties]
         
         # Build student list with payment information
         students_list = []
@@ -1128,25 +1070,8 @@ def get_all_students():
             faculty = "Unknown"
             if enrollments:
                 first_enrollment = enrollments[0]
-                if first_enrollment.course:
-                    # alyan's modification: Use faculty field from Course model
-                    if hasattr(first_enrollment.course, 'faculty') and first_enrollment.course.faculty:
-                        faculty = first_enrollment.course.faculty
-                    else:
-                        # Fallback: Map course name to faculty
-                        course_name = first_enrollment.course.name.lower()
-                        if 'computer' in course_name or 'cs' in course_name:
-                            faculty = "Computer Science"
-                        elif 'english' in course_name or 'literature' in course_name:
-                            faculty = "Digital Arts"
-                        elif 'data' in course_name or 'analytics' in course_name:
-                            faculty = "Computer Science"
-                        elif 'business' in course_name or 'management' in course_name:
-                            faculty = "Business Informatics"
-                        elif 'math' in course_name:
-                            faculty = "Engineering"
-                        else:
-                            faculty = "Engineering"  # Default
+                if first_enrollment.course and first_enrollment.course.faculty:
+                    faculty = first_enrollment.course.faculty.name  # Default
             
             # Determine status
             # Status logic:
@@ -1256,25 +1181,8 @@ def get_student_details(student_id):
         faculty = "Unknown"
         if enrollments:
             first_enrollment = enrollments[0]
-            if first_enrollment.course:
-                # alyan's modification: Use faculty field from Course model
-                if hasattr(first_enrollment.course, 'faculty') and first_enrollment.course.faculty:
-                    faculty = first_enrollment.course.faculty
-                else:
-                    # Fallback: Map course name to faculty
-                    course_name = first_enrollment.course.name.lower()
-                    if 'computer' in course_name or 'cs' in course_name:
-                        faculty = "Computer Science"
-                    elif 'english' in course_name or 'literature' in course_name:
-                        faculty = "Digital Arts"
-                    elif 'data' in course_name or 'analytics' in course_name:
-                        faculty = "Computer Science"
-                    elif 'business' in course_name or 'management' in course_name:
-                        faculty = "Business Informatics"
-                    elif 'math' in course_name:
-                        faculty = "Engineering"
-                    else:
-                        faculty = "Engineering"  # Default
+            if first_enrollment.course and first_enrollment.course.faculty:
+                faculty = first_enrollment.course.faculty.name  # Default
         
         # Determine status
         if dues == 0:
@@ -1418,11 +1326,11 @@ def get_fee_structure():
         # Convert to list
         categories_list = list(categories_dict.values())
         
-        # Get unique faculties from Course model
-        faculties = db.session.query(Course.faculty).filter(
-            Course.faculty.isnot(None)
-        ).distinct().all()
-        faculties_list = [f[0] for f in faculties if f[0]]
+        # Get unique faculties from Faculty model
+        # alyan's modification: Fixed to query Faculty table directly since Course.faculty is now a relationship
+        from models import Faculty
+        faculties = Faculty.query.all()
+        faculties_list = [f.name for f in faculties]
         
         return jsonify({
             'categories': categories_list,
@@ -2116,8 +2024,8 @@ def get_report_types():
     }
     """
     try:
-        # Get unique faculties from courses
-        faculties = db.session.query(Course.faculty).distinct().filter(Course.faculty.isnot(None)).all()
+        # Get unique faculties names from the Faculty model (through Course join to ensure only active faculties are shown)
+        faculties = db.session.query(Faculty.name).join(Course, Course.faculty_id == Faculty.id).distinct().all()
         faculty_list = ["All Faculties"] + [f[0] for f in faculties if f[0]]
         
         report_types = [
@@ -2528,7 +2436,7 @@ def get_faculty_summary():
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
         
         # Get all faculties
-        faculties = db.session.query(Course.faculty).distinct().filter(Course.faculty.isnot(None)).all()
+        faculties = db.session.query(Faculty.name).join(Course, Course.faculty_id == Faculty.id).distinct().all()
         faculty_list = [f[0] for f in faculties if f[0]]
         
         faculties_data = []
@@ -2869,8 +2777,8 @@ def _generate_student_level_report(faculty, start_date, end_date):
         faculty_name = None
         if enrollments_list:
             first_enrollment = enrollments_list[0]
-            if first_enrollment.course:
-                faculty_name = first_enrollment.course.faculty
+            if first_enrollment.course and first_enrollment.course.faculty:
+                faculty_name = first_enrollment.course.faculty.name
         
         # Get last payment date
         last_payment_date = None
@@ -3032,24 +2940,8 @@ def get_unpaid_students():
             faculty = "Unknown"
             if enrollments:
                 first_enrollment = enrollments[0]
-                if first_enrollment.course:
-                    if hasattr(first_enrollment.course, 'faculty') and first_enrollment.course.faculty:
-                        faculty = first_enrollment.course.faculty
-                    else:
-                        # Fallback: Map course name to faculty
-                        course_name = first_enrollment.course.name.lower()
-                        if 'computer' in course_name or 'cs' in course_name:
-                            faculty = "Computer Science"
-                        elif 'english' in course_name or 'literature' in course_name:
-                            faculty = "Digital Arts"
-                        elif 'data' in course_name or 'analytics' in course_name:
-                            faculty = "Computer Science"
-                        elif 'business' in course_name or 'management' in course_name:
-                            faculty = "Business Informatics"
-                        elif 'math' in course_name:
-                            faculty = "Engineering"
-                        else:
-                            faculty = "Engineering"  # Default
+                if first_enrollment.course and first_enrollment.course.faculty:
+                    faculty = first_enrollment.course.faculty.name  # Default
             
             # Calculate due date (30 days from first enrollment, or use payment_due_date if set)
             # alyan's modification: Use getattr to safely access new fields that may not exist yet
@@ -3727,3 +3619,254 @@ def bulk_block():
         db.session.rollback()
         current_app.logger.error(f"Error blocking bulk registrations: {str(e)}", exc_info=True)
         return jsonify({"error": "Failed to block bulk registrations", "details": str(e)}), 500
+
+
+# ============================================================================
+# ENDPOINT: GET /api/finance/payments/pending
+# Description: List all pending bank transfer payments awaiting verification
+# ============================================================================
+@finance_bp.route("/payments/pending", methods=["GET"])
+@jwt_required()
+@require_admin
+def get_pending_payments():
+    """
+    Get all pending bank transfer payments that need verification.
+    Returns payment details with student information.
+    """
+    try:
+        # Query pending bank transfer payments
+        pending_payments = Payment.query.filter_by(
+            payment_method='BANK_TRANSFER',
+            status='PENDING'
+        ).order_by(Payment.created_at.desc()).all()
+        
+        # Format response with student details
+        payments_list = []
+        for payment in pending_payments:
+            payment_dict = payment.to_dict(include_student=True)
+            # Add student balance for context
+            if payment.student:
+                payment_dict['student_balance'] = payment.student.dues_balance
+            payments_list.append(payment_dict)
+        
+        return jsonify({
+            "pending_payments": payments_list,
+            "count": len(payments_list)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching pending payments: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to fetch pending payments: {str(e)}"}), 500
+
+
+# ============================================================================
+# ENDPOINT: POST /api/finance/payments/<payment_id>/verify
+# Description: Verify (approve) a pending bank transfer payment
+# ============================================================================
+@finance_bp.route("/payments/<int:payment_id>/verify", methods=["POST"])
+@jwt_required()
+@require_admin
+def verify_payment(payment_id):
+    """
+    Verify and approve a pending bank transfer payment.
+    Updates payment status to RECEIVED and adjusts student balance.
+    """
+    try:
+        identity = get_jwt_identity()
+        admin_id = int(identity)
+        
+        # Get payment
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({"error": "Payment not found"}), 404
+        
+        # Validate payment is pending
+        if payment.status != 'PENDING':
+            return jsonify({"error": f"Payment is not pending (current status: {payment.status})"}), 400
+        
+        if payment.payment_method != 'BANK_TRANSFER':
+            return jsonify({"error": "Only bank transfer payments can be verified"}), 400
+        
+        # Get student
+        student = User.query.get(payment.student_id)
+        if not student:
+            return jsonify({"error": "Student not found"}), 404
+        
+        # Update payment status
+        payment.status = 'RECEIVED'
+        payment.verified_by = admin_id
+        payment.verified_at = datetime.now(timezone.utc)
+        
+        # Update student balance
+        student.dues_balance -= payment.amount
+        if student.dues_balance < 0:
+            student.dues_balance = 0
+        
+        # Create notification for student
+        notification = Notification(
+            student_id=payment.student_id,
+            notification_type='PAYMENT_VERIFIED',
+            message=f"Your bank transfer payment of ${payment.amount:.2f} has been verified and approved. Remaining balance: ${student.dues_balance:.2f}"
+        )
+        db.session.add(notification)
+        
+        # Create action log
+        action_log = ActionLog(
+            student_id=payment.student_id,
+            action_type='PAYMENT_VERIFIED',
+            action_description=f"Bank transfer payment #{payment.id} of ${payment.amount:.2f} verified and approved",
+            performed_by=admin_id
+        )
+        db.session.add(action_log)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "msg": "Payment verified successfully",
+            "payment_id": payment.id,
+            "student_id": payment.student_id,
+            "amount": payment.amount,
+            "new_balance": student.dues_balance,
+            "verified_at": payment.verified_at.isoformat()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error verifying payment: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to verify payment: {str(e)}"}), 500
+
+
+# ============================================================================
+# ENDPOINT: POST /api/finance/payments/<payment_id>/reject
+# Description: Reject a pending bank transfer payment
+# ============================================================================
+@finance_bp.route("/payments/<int:payment_id>/reject", methods=["POST"])
+@jwt_required()
+@require_admin
+def reject_payment(payment_id):
+    """
+    Reject a pending bank transfer payment.
+    Updates payment status to REJECTED without affecting student balance.
+    """
+    try:
+        identity = get_jwt_identity()
+        admin_id = int(identity)
+        
+        data = request.get_json() or {}
+        rejection_reason = data.get('reason', 'Payment verification failed')
+        
+        # Get payment
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({"error": "Payment not found"}), 404
+        
+        # Validate payment is pending
+        if payment.status != 'PENDING':
+            return jsonify({"error": f"Payment is not pending (current status: {payment.status})"}), 400
+        
+        # Update payment status
+        payment.status = 'REJECTED'
+        payment.verified_by = admin_id
+        payment.verified_at = datetime.now(timezone.utc)
+        payment.notes = f"REJECTED: {rejection_reason}" + (f"\n\nOriginal notes: {payment.notes}" if payment.notes else "")
+        
+        # Create notification for student
+        notification = Notification(
+            student_id=payment.student_id,
+            notification_type='PAYMENT_REJECTED',
+            message=f"Your bank transfer payment of ${payment.amount:.2f} was not approved. Reason: {rejection_reason}. Please contact finance for details."
+        )
+        db.session.add(notification)
+        
+        # Create action log
+        action_log = ActionLog(
+            student_id=payment.student_id,
+            action_type='PAYMENT_REJECTED',
+            action_description=f"Bank transfer payment #{payment.id} of ${payment.amount:.2f} rejected. Reason: {rejection_reason}",
+            performed_by=admin_id
+        )
+        db.session.add(action_log)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "msg": "Payment rejected",
+            "payment_id": payment.id,
+            "reason": rejection_reason
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error rejecting payment: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to reject payment: {str(e)}"}), 500
+
+
+# ============================================================================
+# ENDPOINT: GET /api/finance/payments/<payment_id>/proof
+# Description: Serve the uploaded proof document for a payment
+# ============================================================================
+@finance_bp.route("/payments/<int:payment_id>/proof", methods=["GET"])
+def get_payment_proof(payment_id):
+    """
+    Serve the uploaded proof document for finance review.
+    Supports both JWT header auth and token query parameter for iframe access.
+    """
+    try:
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask_jwt_extended.exceptions import NoAuthorizationError
+        
+        # Try to verify JWT from header first
+        authenticated = False
+        try:
+            verify_jwt_in_request()
+            identity = get_jwt_identity()
+            if identity:
+                user = User.query.get(identity)
+                if user and user.is_admin:
+                    authenticated = True
+        except (NoAuthorizationError, Exception):
+            # If header auth fails, try query parameter
+            token = request.args.get('token')
+            if token:
+                try:
+                    from flask_jwt_extended import decode_token
+                    decoded = decode_token(token)
+                    user_id = decoded.get('sub')
+                    if user_id:
+                        user = User.query.get(user_id)
+                        if user and user.is_admin:
+                            authenticated = True
+                except Exception as e:
+                    print(f"Token decode error: {e}")
+        
+        if not authenticated:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        # Get payment
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({"error": "Payment not found"}), 404
+        
+        if not payment.proof_document:
+            return jsonify({"error": "No proof document uploaded for this payment"}), 404
+        
+        # Construct full file path
+        file_path = os.path.join(current_app.root_path, payment.proof_document)
+        
+        if not os.path.exists(file_path):
+            return jsonify({"error": "Proof document file not found on server"}), 404
+        
+        # Serve file
+        return send_file(file_path, as_attachment=False)
+        
+    except Exception as e:
+        print(f"Error serving proof document: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to serve proof document: {str(e)}"}), 500

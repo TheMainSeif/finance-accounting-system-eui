@@ -15,6 +15,8 @@ const CourseRegistration = () => {
   const [dropLoading, setDropLoading] = useState(null); // ID of course being dropped
   const [hasPayments, setHasPayments] = useState(false); // Track if student has made any payments
   const [creditLimit, setCreditLimit] = useState(18); // Default credit limit
+  const [estimatedTotal, setEstimatedTotal] = useState(0); // Dynamically calculated total
+  const [estimatingFees, setEstimatingFees] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -240,12 +242,38 @@ const CourseRegistration = () => {
     setCreditLimit(18);
   }, []);
 
-  const calculateTotalFees = () => {
-    return selectedCourses.reduce((sum, course) => {
-      const fee = Number(course.total_fee) || 0;
-      return sum + fee;
-    }, 0);
-  };
+  // Calculate dynamic fees whenever selection changes
+  useEffect(() => {
+    const estimateTotalFees = async () => {
+      if (selectedCourses.length === 0) {
+        setEstimatedTotal(0);
+        return;
+      }
+
+      setEstimatingFees(true);
+      try {
+        const courseIds = selectedCourses.map(c => c.id);
+        const result = await studentService.estimateFees(courseIds, false);
+        setEstimatedTotal(result.total);
+      } catch (err) {
+        console.error('Error estimating fees:', err);
+        // Fallback to simple sum if estimate fails
+        const simpleSum = selectedCourses.reduce((sum, course) => {
+          return sum + (Number(course.total_fee) || 0);
+        }, 0);
+        setEstimatedTotal(simpleSum);
+      } finally {
+        setEstimatingFees(false);
+      }
+    };
+
+    // Debounce estimation to avoid excessive calls
+    const timeoutId = setTimeout(() => {
+      estimateTotalFees();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedCourses]);
 
   const handleSubmitRegistration = async () => {
     if (selectedCourses.length === 0) {
@@ -259,21 +287,26 @@ const CourseRegistration = () => {
       return;
     }
 
+    // Payment check removed to allow new students to register
+    // Fees will be calculated after registration
+    /* 
     if (!hasPayments) {
       message.warning('Please complete your payment before registering for courses');
       return;
     }
+    */
 
     setSubmitting(true);
     setError(null);
 
     try {
-      // Enroll in each selected course
-      const enrollPromises = selectedCourses.map(course =>
-        studentService.enrollCourse(course.id)
-      );
-
-      await Promise.all(enrollPromises);
+      // Enroll in all selected courses at once (Batch)
+      const courseIds = selectedCourses.map(course => course.id);
+      
+      await studentService.enrollCourse({
+        course_ids: courseIds,
+        include_bus: false
+      });
 
       message.success('Registration successful!');
       setSelectedCourses([]);
@@ -450,8 +483,15 @@ const CourseRegistration = () => {
 
               <div className="summary-row total">
                 <span className="summary-label">Estimated Fees</span>
-                <span className="summary-value">${calculateTotalFees().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="summary-value">
+                  {estimatingFees ? (
+                    <span className="loading-dots">Computing...</span>
+                  ) : (
+                    `$${estimatedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  )}
+                </span>
               </div>
+
 
               <button
                 className="submit-btn"

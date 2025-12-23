@@ -54,6 +54,72 @@ const MakePayment = () => {
     }
   };
 
+  /**
+   * SECURITY: Luhn Algorithm - Industry-standard card number validation
+   * Validates that the card number is mathematically valid
+   */
+  const validateCardNumberLuhn = (cardNumber) => {
+    const digits = cardNumber.replace(/\D/g, '');
+    if (digits.length !== 16) return false;
+    
+    let sum = 0;
+    let isEven = false;
+    
+    // Loop through digits from right to left
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let digit = parseInt(digits[i], 10);
+      
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+      
+      sum += digit;
+      isEven = !isEven;
+    }
+    
+    return sum % 10 === 0;
+  };
+
+  /**
+   * SECURITY: Detect card type from card number
+   * Returns: 'visa', 'mastercard', 'amex', 'discover', or 'unknown'
+   */
+  const detectCardType = (cardNumber) => {
+    const digits = cardNumber.replace(/\D/g, '');
+    
+    if (/^4/.test(digits)) return 'visa';
+    if (/^5[1-5]/.test(digits)) return 'mastercard';
+    if (/^3[47]/.test(digits)) return 'amex';
+    if (/^6(?:011|5)/.test(digits)) return 'discover';
+    
+    return 'unknown';
+  };
+
+  /**
+   * SECURITY: Validate cardholder name format
+   * Must contain at least first and last name, only letters and spaces
+   */
+  const validateCardholderName = (name) => {
+    if (!name || name.trim().length < 3) return false;
+    
+    // Must contain at least 2 words (first and last name)
+    const words = name.trim().split(/\s+/);
+    if (words.length < 2) return false;
+    
+    // Only letters, spaces, hyphens, and apostrophes allowed
+    if (!/^[A-Za-z\s'-]+$/.test(name)) return false;
+    
+    // Each word must be at least 2 characters
+    for (const word of words) {
+      if (word.length < 2) return false;
+    }
+    
+    return true;
+  };
+
   const handlePayment = async (e) => {
     e.preventDefault();
     
@@ -68,45 +134,110 @@ const MakePayment = () => {
 
     // Validate based on method
     if (paymentMethod === 'card') {
-      // 1. Validate Card Number
+      // ============================================================================
+      // STRICT CARD VALIDATION
+      // ============================================================================
+      
+      // 1. VALIDATE CARD NUMBER
       const cleanCardNum = cardNumber.replace(/\s/g, '');
-      if (cleanCardNum.length !== 16) {
-        errors.cardNumber = 'Card number must be 16 digits';
+      
+      // Check length
+      if (!cleanCardNum) {
+        errors.cardNumber = 'Card number is required';
         isValid = false;
+      } else if (!/^\d+$/.test(cleanCardNum)) {
+        errors.cardNumber = 'Card number must contain only digits';
+        isValid = false;
+      } else if (cleanCardNum.length !== 16) {
+        errors.cardNumber = 'Card number must be exactly 16 digits';
+        isValid = false;
+      } else {
+        // Luhn algorithm validation
+        if (!validateCardNumberLuhn(cleanCardNum)) {
+          errors.cardNumber = 'Invalid card number (failed checksum validation)';
+          isValid = false;
+        } else {
+          // Card type detection
+          const cardType = detectCardType(cleanCardNum);
+          if (cardType === 'unknown') {
+            errors.cardNumber = 'Unsupported card type. Please use Visa, Mastercard, Amex, or Discover';
+            isValid = false;
+          }
+        }
       }
 
-      // 2. Validate Expiry Date
-      if (expiryDate.length !== 5) {
-        errors.expiryDate = 'Invalid format (MM/YY)';
+      // 2. VALIDATE EXPIRY DATE
+      if (!expiryDate) {
+        errors.expiryDate = 'Expiry date is required';
+        isValid = false;
+      } else if (expiryDate.length !== 5 || !expiryDate.includes('/')) {
+        errors.expiryDate = 'Invalid format. Use MM/YY';
         isValid = false;
       } else {
         const [expMonth, expYear] = expiryDate.split('/');
         const month = parseInt(expMonth, 10);
         const year = parseInt(expYear, 10);
-        const now = new Date();
-        const currentYear = now.getFullYear() % 100;
-        const currentMonth = now.getMonth() + 1;
-
-        if (!month || !year || month < 1 || month > 12) {
-          errors.expiryDate = 'Invalid month';
+        
+        // Validate month
+        if (!month || month < 1 || month > 12) {
+          errors.expiryDate = 'Invalid month (must be 01-12)';
           isValid = false;
-        } else if (year < currentYear || (year === currentYear && month < currentMonth)) {
-          errors.expiryDate = 'Card has expired';
-          isValid = false;
+        } else {
+          // Validate year and check expiration
+          const now = new Date();
+          const currentYear = now.getFullYear() % 100;
+          const currentMonth = now.getMonth() + 1;
+          
+          if (!year || year < 0 || year > 99) {
+            errors.expiryDate = 'Invalid year';
+            isValid = false;
+          } else if (year < currentYear) {
+            errors.expiryDate = 'Card has expired';
+            isValid = false;
+          } else if (year === currentYear && month < currentMonth) {
+            errors.expiryDate = 'Card has expired';
+            isValid = false;
+          } else if (year > currentYear + 20) {
+            errors.expiryDate = 'Expiry date too far in future';
+            isValid = false;
+          }
         }
       }
 
-      // 3. Validate CVV
-      if (cvv.length < 3 || cvv.length > 4) {
-        errors.cvv = 'Invalid CVV';
+      // 3. VALIDATE CVV
+      if (!cvv) {
+        errors.cvv = 'CVV is required';
         isValid = false;
+      } else if (!/^\d+$/.test(cvv)) {
+        errors.cvv = 'CVV must contain only digits';
+        isValid = false;
+      } else {
+        // CVV length depends on card type
+        const cardType = detectCardType(cleanCardNum);
+        if (cardType === 'amex') {
+          // American Express uses 4-digit CVV
+          if (cvv.length !== 4) {
+            errors.cvv = 'American Express requires 4-digit CVV';
+            isValid = false;
+          }
+        } else {
+          // Visa, Mastercard, Discover use 3-digit CVV
+          if (cvv.length !== 3) {
+            errors.cvv = 'CVV must be 3 digits';
+            isValid = false;
+          }
+        }
       }
 
-      // 4. Validate Name
-      if (!cardholderName || cardholderName.trim().length < 2) {
-        errors.cardholderName = 'Enter cardholder name';
+      // 4. VALIDATE CARDHOLDER NAME
+      if (!cardholderName) {
+        errors.cardholderName = 'Cardholder name is required';
+        isValid = false;
+      } else if (!validateCardholderName(cardholderName)) {
+        errors.cardholderName = 'Enter full name (first and last) as shown on card';
         isValid = false;
       }
+      
     } else if (paymentMethod === 'banking') {
       // Validate Bank Transfer
       if (!referenceNumber || referenceNumber.trim().length < 3) {
@@ -121,7 +252,10 @@ const MakePayment = () => {
     }
 
     setFieldErrors(errors);
-    if (!isValid) return;
+    if (!isValid) {
+      setError('Please correct the errors above before submitting');
+      return;
+    }
 
     setProcessing(true);
     setError(null);
@@ -241,10 +375,31 @@ const MakePayment = () => {
                           const v = e.target.value.replace(/\D/g, '').slice(0, 16);
                           const formatted = v.match(/.{1,4}/g)?.join(' ') || v;
                           setCardNumber(formatted);
-                          setFieldErrors(prev => ({ ...prev, cardNumber: null }));
+                          
+                          // Real-time validation
+                          if (v.length === 16) {
+                            if (!validateCardNumberLuhn(v)) {
+                              setFieldErrors(prev => ({ ...prev, cardNumber: 'Invalid card number (failed checksum)' }));
+                            } else {
+                              const cardType = detectCardType(v);
+                              if (cardType === 'unknown') {
+                                setFieldErrors(prev => ({ ...prev, cardNumber: 'Unsupported card type' }));
+                              } else {
+                                setFieldErrors(prev => ({ ...prev, cardNumber: null }));
+                              }
+                            }
+                          } else {
+                            setFieldErrors(prev => ({ ...prev, cardNumber: null }));
+                          }
+                        }}
+                        onBlur={() => {
+                          const v = cardNumber.replace(/\D/g, '');
+                          if (v.length > 0 && v.length < 16) {
+                            setFieldErrors(prev => ({ ...prev, cardNumber: 'Card number must be 16 digits' }));
+                          }
                         }}
                         maxLength="19"
-                        
+                        required
                         className={fieldErrors.cardNumber ? 'invalid' : ''}
                       />
                       <svg className="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -300,11 +455,24 @@ const MakePayment = () => {
                           placeholder="123"
                           value={cvv}
                           onChange={(e) => {
-                            setCvv(e.target.value.replace(/\D/g, '').slice(0, 4));
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            setCvv(value);
                             setFieldErrors(prev => ({ ...prev, cvv: null }));
                           }}
+                          onBlur={() => {
+                            if (cvv) {
+                              const cleanCardNum = cardNumber.replace(/\s/g, '');
+                              const cardType = detectCardType(cleanCardNum);
+                              
+                              if (cardType === 'amex' && cvv.length !== 4) {
+                                setFieldErrors(prev => ({ ...prev, cvv: 'American Express requires 4-digit CVV' }));
+                              } else if (cardType !== 'amex' && cvv.length !== 3) {
+                                setFieldErrors(prev => ({ ...prev, cvv: 'CVV must be 3 digits' }));
+                              }
+                            }
+                          }}
                           maxLength="4"
-                          
+                          required
                           className={fieldErrors.cvv ? 'invalid' : ''}
                         />
                          <svg className="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,9 +490,22 @@ const MakePayment = () => {
                       placeholder="JOHN SMITH"
                       value={cardholderName}
                       onChange={(e) => {
-                        setCardholderName(e.target.value.toUpperCase());
-                        setFieldErrors(prev => ({ ...prev, cardholderName: null }));
+                        const value = e.target.value.toUpperCase();
+                        // Only allow letters, spaces, hyphens, and apostrophes
+                        if (/^[A-Z\s'-]*$/.test(value) || value === '') {
+                          setCardholderName(value);
+                          setFieldErrors(prev => ({ ...prev, cardholderName: null }));
+                        }
                       }}
+                      onBlur={() => {
+                        if (cardholderName && !validateCardholderName(cardholderName)) {
+                          setFieldErrors(prev => ({ 
+                            ...prev, 
+                            cardholderName: 'Enter full name (first and last) as shown on card' 
+                          }));
+                        }
+                      }}
+                      required
                       className={fieldErrors.cardholderName ? 'invalid' : ''}
                     />
                     {fieldErrors.cardholderName && <span className="error-message">{fieldErrors.cardholderName}</span>}

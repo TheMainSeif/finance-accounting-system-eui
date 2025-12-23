@@ -7,7 +7,7 @@ Usage:
 """
 
 from app import create_app, db
-from models import User, Course, Enrollment, Payment, Notification, ActionLog, Faculty
+from models import User, Course, Enrollment, Payment, Notification, ActionLog, Faculty, FeeStructure, Penalty
 from datetime import datetime, timedelta
 from sqlalchemy import text
 
@@ -20,37 +20,9 @@ def seed_database():
         # Clear existing data
         print("Clearing existing data...")
         
-        # Disable foreign key checks and drop all tables manually
-        try:
-            # Disable foreign key checks temporarily
-            db.session.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-            db.session.commit()
-            
-            # Get all tables in the database
-            result = db.session.execute(text("SHOW TABLES"))
-            tables = [row[0] for row in result]
-            
-            # Drop all tables
-            for table in tables:
-                print(f"Dropping table '{table}'...")
-                db.session.execute(text(f"DROP TABLE IF EXISTS `{table}`"))
-                db.session.commit()
-            
-            # Re-enable foreign key checks
-            db.session.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
-            db.session.commit()
-            
-            print("All tables dropped successfully.")
-            
-        except Exception as e:
-            print(f"Error during table cleanup: {e}")
-            # Make sure to re-enable foreign key checks even if there's an error
-            try:
-                db.session.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
-                db.session.commit()
-            except:
-                pass
-            raise
+        # Simply drop and recreate all tables
+        db.drop_all()
+        print("All tables dropped successfully.")
         
         # Create all tables
         print("Creating all tables...")
@@ -131,6 +103,19 @@ def seed_database():
         db.session.commit()
         print(f"✓ Created 1 admin and {len(students)} student users")
         
+        # ====================================================================
+        # Create Fee Structures (Finance Reconciliation)
+        # ====================================================================
+        print("Creating fee structures...")
+        fee_structures = [
+            FeeStructure(category="tuition", name="Credit Hour Fee (Standard)", amount=500.0, is_per_credit=True),
+            FeeStructure(category="admin", name="Registration Fee", amount=200.0, is_per_credit=False),
+            FeeStructure(category="other", name="Library Access", amount=50.0, is_per_credit=False),
+        ]
+        db.session.add_all(fee_structures)
+        db.session.commit()
+        print(f"✓ Created {len(fee_structures)} fee structures")
+
         # ====================================================================
         # Create Sample Courses
         # ====================================================================
@@ -346,7 +331,29 @@ def seed_database():
         db.session.commit()
         print(f"✓ Created {len(payments)} payments")
         
-        # Update student dues_balance based on payments
+        # ====================================================================
+        # Create Penalties & Late Fees
+        # ====================================================================
+        print("\nCreating penalties...")
+        # Apply late fee to Student 4
+        late_fee = Penalty(
+            student_id=students[3].id,
+            amount=150.0,
+            penalty_type="LATE_FEE",
+            notes="Late payment for Fall semester",
+            applied_by=admin.id
+        )
+        db.session.add(late_fee)
+        
+        # Block Student 4 due to non-payment
+        students[3].is_blocked = True
+        students[3].blocked_at = datetime.now()
+        students[3].blocked_reason = "Outstanding dues > $5000"
+        
+        db.session.commit()
+        print("✓ Created penalties and blocked defaulting student")
+
+        # Update student dues_balance based on enrollments + penalties - payments
         for student in students:
             total_paid = sum(
                 p.amount for p in Payment.query.filter_by(student_id=student.id).all()
@@ -354,7 +361,12 @@ def seed_database():
             total_fees = sum(
                 e.course_fee for e in Enrollment.query.filter_by(student_id=student.id).all()
             )
-            student.dues_balance = max(0, total_fees - total_paid)
+            total_penalties = sum(
+                p.amount for p in Penalty.query.filter_by(student_id=student.id).all()
+            )
+            
+            # Single Source of Truth Calculation:
+            student.dues_balance = (total_fees + total_penalties) - total_paid
         
         db.session.commit()
         print("✓ Updated student dues_balance after payments")
