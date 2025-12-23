@@ -8,26 +8,27 @@ This guide explains how to deploy your full-stack application to Railway.
 2. Click **New Project**.
 3. Select **Deploy from GitHub repo** and choose your repository.
 
-### For Monorepo Setup (Two Services)
+### For Monorepo Setup (Crucial Steps)
 
-You should create **two** separate services in the same project pointing to the same repository:
+You need to create **separate services** within the **same Railway project**. Do not try to pack everything into one service.
 
-#### A. Backend Service (API)
+#### 1. Add the Backend Service
 
-- **Repo**: Your GitHub repository.
-- **Root Directory**: `Web/Full-Stack/backend`
-- Railway will automatically detect the `backend/railway.toml` and build the container.
+- Click **New** > **GitHub Repo** > Select your repo.
+- Go to the service **Settings** > **General** > **Root Directory**.
+- Set it to: `Web/Full-Stack/backend`
 
-#### B. Frontend Service
+#### 2. Add the Frontend Service (Repeat the process)
 
-- **Repo**: Your GitHub repository.
-- **Root Directory**: `Web/Full-Stack/frontend`
-- Railway will automatically detect the `frontend/railway.toml` and build the container.
+- Click the **New** button again (top right or empty space in canvas).
+- Select **GitHub Repo** again > Select the **same repo**.
+- Go to the new service **Settings** > **General** > **Root Directory**.
+- Set it to: `Web/Full-Stack/frontend`
 
 ## Step 2: Provision MySQL Database
 
-1. In your Railway project, click **New > Database > Add MySQL**.
-2. Railway will automatically provide connection variables.
+1. In the same project, click **New** > **Database** > **Add MySQL**.
+2. This creates a third service in your project dashboard.
 
 ## Step 3: Configure Environment Variables
 
@@ -49,5 +50,15 @@ For the **api** (backend) service, add the following variables:
 
 ## Troubleshooting
 
-- **Database Errors**: Ensure the environment variables match the MySQL service variables.
-- **Port Errors**: The backend is configured to listen on port `5000`. Railway handles internal routing, but ensure the `PORT` variable is set correctly if needed (default is 5000).
+-   **`gunicorn: not found`**: This usually happens if `requirements.txt` is missing `gunicorn` or has the wrong encoding (UTF-16 instead of UTF-8). I have already fixed this for you.
+-   **`OperationalError: (1045, "Access denied...")`**: This means your Backend service cannot connect to the MySQL database.
+    1. Go to your **Backend Service** settings in Railway.
+    2. Go to **Variables**.
+    3. Ensure `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, and `DB_NAME` are correctly set.
+    4. Instead of typing the values, use Railway's reference syntax:
+        - `DB_HOST`: `${{MySQL.MYSQLHOST}}`
+        - `DB_PORT`: `${{MySQL.MYSQLPORT}}`
+        - `DB_USER`: `${{MySQL.MYSQLUSER}}`
+        - `DB_PASSWORD`: `${{MySQL.MYSQLPASSWORD}}`
+        - `DB_NAME`: `${{MySQL.MYSQLDATABASE}}`
+-   **Healthcheck Errors**: If the healthcheck fails, check the logs for any Python errors during startup. The current path is set to `/api/health`.
