@@ -11,7 +11,7 @@ const CourseRegistration = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
+  const [success] = useState(false);
   const [dropLoading, setDropLoading] = useState(null); // ID of course being dropped
   const [hasPayments, setHasPayments] = useState(false); // Track if student has made any payments
   const [creditLimit, setCreditLimit] = useState(18); // Default credit limit

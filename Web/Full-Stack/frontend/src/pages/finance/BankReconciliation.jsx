@@ -17,9 +17,9 @@ const BankReconciliation = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [syncing, setSyncing] = useState(false);
-    const [viewingTransaction, setViewingTransaction] = useState(null);
-    const [matchingTransaction, setMatchingTransaction] = useState(null);
-    const [suggestions, setSuggestions] = useState(null);
+    const [, setViewingTransaction] = useState(null);
+    const [, setMatchingTransaction] = useState(null);
+    const [, setSuggestions] = useState(null);
 
     useEffect(() => {
         if (location.hash === '#transactions') {

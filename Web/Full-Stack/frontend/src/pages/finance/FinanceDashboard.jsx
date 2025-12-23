@@ -42,9 +42,9 @@ const FinanceDashboard = () => {
       
       try {
         // ✅ Fetch all dashboard data in parallel
-        const [summaryData, duesData, recentPaymentsData, facultyPaymentsData, bankData] = await Promise.all([
+        const [summaryData, recentPaymentsData, facultyPaymentsData, bankData] = await Promise.all([
           financeService.getSummary(),           // ✅ New API
-          financeService.getDues(),               // ✅ Existing API
+                        // ✅ Existing API
           financeService.getRecentPayments({ limit: 5 }),  // ✅ New API
           financeService.getPaymentsByFaculty(),  // ✅ New API
           financeService.getBankReconciliation({ limit: 4 })  // ✅ Bank Reconciliation API

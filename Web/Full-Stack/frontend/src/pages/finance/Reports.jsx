@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { reportsService } from '../../services/api-routes/reports-routes';
 import './Reports.css';
 
@@ -232,7 +232,7 @@ const Reports = () => {
                 try {
                     await reportsService.downloadAndSaveReport(reportData.report_id, 'pdf');
                     alert('Report downloaded successfully!');
-                } catch (downloadError) {
+                } catch {
                     // Fallback to JSON download
                     const filename = `${report.type}-report-${new Date().toISOString().split('T')[0]}.json`;
                     downloadAsJSON(reportData, filename);
@@ -276,7 +276,7 @@ const Reports = () => {
                 try {
                     await reportsService.downloadAndSaveReport(reportData.report_id, 'excel');
                     alert('Report downloaded successfully!');
-                } catch (downloadError) {
+                } catch {
                     // Fallback: convert data to CSV if it's student level
                     if (report.type === 'student_level' && reportData.data) {
                         const filename = `${report.type}-report-${new Date().toISOString().split('T')[0]}.csv`;
@@ -352,7 +352,7 @@ const Reports = () => {
             try {
                 await reportsService.downloadAndSaveReport(reportId, 'pdf');
                 alert('Report downloaded successfully!');
-            } catch (pdfError) {
+            } catch {
                 alert('Failed to download report. The report may have expired or is not available.');
             }
         }

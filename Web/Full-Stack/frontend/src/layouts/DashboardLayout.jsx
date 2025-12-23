@@ -1,12 +1,11 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logoIcon from '../assets/images/logo.ico';
 import './DashboardLayout.css';
 
 const DashboardLayout = ({ children }) => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 

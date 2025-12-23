@@ -75,7 +75,7 @@ const Login = ({ onClose }) => {
       } else {
         setErrors({ general: result.message });
       }
-    } catch (err) {
+    } catch {
       setErrors({ general: 'An unexpected error occurred.' });
     } finally {
       setLoading(false);

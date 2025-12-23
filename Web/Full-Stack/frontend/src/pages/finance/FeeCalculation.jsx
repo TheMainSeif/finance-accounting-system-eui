@@ -64,7 +64,7 @@ const FeeCalculation = () => {
 
     useEffect(() => {
         fetchFeeStructure();
-    }, []);
+    }, [fetchFeeStructure]);
 
     const addFee = async (category) => {
         try {

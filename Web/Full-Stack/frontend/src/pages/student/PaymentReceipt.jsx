@@ -11,44 +11,43 @@ const PaymentReceipt = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [paymentInfo, setPaymentInfo] = useState(null);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
 
+  const paymentInfo = React.useMemo(() => {
+    const payment = location.state?.payment;
+    if (!payment) return null;
+
+    const dateStr = payment.initiatedAt || payment.payment_date;
+    const finalDateStr = (dateStr && dateStr.endsWith('Z')) ? dateStr : (dateStr + 'Z');
+
+    return {
+      ...payment,
+      date: new Date(finalDateStr).toLocaleString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    };
+  }, [location.state?.payment]);
+
   useEffect(() => {
-    // Strictly rely on navigation state for payment data
-    // Do not fetch or recompute
-    if (location.state?.payment) {
-      const { payment } = location.state;
-      
+    if (paymentInfo) {
       const loadExtras = async () => {
-         try {
-           const statusData = await studentService.getDashboardStatus();
-           setEnrolledCourses(statusData.enrollments || []);
-         } catch (err) {
-           console.error('Failed to load courses:', err);
-         }
+        try {
+          const statusData = await studentService.getDashboardStatus();
+          setEnrolledCourses(statusData.enrollments || []);
+        } catch (err) {
+          console.error('Failed to load courses:', err);
+        }
       };
-      
       loadExtras();
-
-      setPaymentInfo({
-        ...payment,
-        date: new Date((payment.initiatedAt || payment.payment_date).endsWith('Z') ? (payment.initiatedAt || payment.payment_date) : (payment.initiatedAt || payment.payment_date) + 'Z').toLocaleString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        })
-      });
-
     } else {
-        // Fallback only if accessed directly without state (not recommended flow, but handles edge case)
-        // Ideally should redirect back to history
-        navigate('/student/history'); 
+      navigate('/student/history');
     }
-  }, [location, navigate]);
+  }, [paymentInfo, navigate]);
 
   const handlePrint = () => {
     window.print();

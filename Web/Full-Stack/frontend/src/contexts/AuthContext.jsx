@@ -1,22 +1,21 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState } from 'react';
 import authService from '../services/authService';
 
 const AuthContext = createContext(null);
-
-// eslint-disable-next-line react-refresh/only-export-components
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
-
-  // Initialize auth state from local storage on mount
-  useEffect(() => {
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
+    try {
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
     }
-    setLoading(false);
-  }, [token]);
+  });
+  const [loading] = useState(false);
+
+  // No longer need useEffect to set loading to false as it's initialized above
 
   const login = async (username, password) => {
     try {
