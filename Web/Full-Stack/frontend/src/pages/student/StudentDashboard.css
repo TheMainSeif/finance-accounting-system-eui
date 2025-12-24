@@ -9,6 +9,9 @@
 
 /* Section Headers - Scoped to Student Dashboard */
 .student-dashboard-content .dashboard-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 0.5rem;
 }
 

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { unpaidStudentsService } from '../../services/api-routes/unpaid-students-routes';
+import BulkActionModal from './BulkActionModal';
+import BulkActionResultModal from './BulkActionResultModal';
+import IndividualActionModal from './IndividualActionModal';
+import IndividualActionSuccessModal from './IndividualActionSuccessModal';
 import './UnpaidStudents.css';
 
 const UnpaidStudents = () => {
@@ -16,6 +20,20 @@ const UnpaidStudents = () => {
         overdueCount: 0
     });
 
+    // Modal state
+    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+    const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+    const [currentAction, setCurrentAction] = useState(null);
+    const [actionResult, setActionResult] = useState(null);
+
+    // Individual action modal state
+    const [isIndividualModalOpen, setIsIndividualModalOpen] = useState(false);
+    const [individualAction, setIndividualAction] = useState(null);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [successAction, setSuccessAction] = useState(null);
+    const [successStudentName, setSuccessStudentName] = useState('');
+
     // ============================================================================
     // ✅ FETCH DATA FROM ENHANCED API
     // ============================================================================
@@ -23,11 +41,11 @@ const UnpaidStudents = () => {
         const fetchUnpaidStudents = async () => {
             setLoading(true);
             setError(null);
-            
+
             try {
                 // ✅ Use enhanced API to get unpaid students data
                 const data = await unpaidStudentsService.getUnpaidStudents();
-                
+
                 setStudents(data.students);
                 setStats({
                     unpaidCount: data.summary.unpaid_count,
@@ -48,62 +66,158 @@ const UnpaidStudents = () => {
     // ============================================================================
     // ✅ CONNECTED: Send Reminder (Individual)
     // ============================================================================
-    const handleSendReminder = async (studentId) => {
-        setActionLoading(`reminder-${studentId}`);
-        
+    const handleSendReminder = (studentId) => {
+        const student = students.find(s => s.student_id === studentId);
+        if (!student) {
+            alert('Student not found');
+            return;
+        }
+        setSelectedStudent(student);
+        setIndividualAction('reminder');
+        setIsIndividualModalOpen(true);
+    };
+
+    // ============================================================================
+    // ✅ Apply Penalties (Individual) - Connected to API
+    // ============================================================================
+    const handleApplyPenalties = (studentId) => {
+        const student = students.find(s => s.student_id === studentId || s.id === parseInt(studentId.replace('STD-', '')));
+        if (!student) {
+            alert('Student not found');
+            return;
+        }
+        setSelectedStudent(student);
+        setIndividualAction('penalty');
+        setIsIndividualModalOpen(true);
+    };
+
+    // ============================================================================
+    // ✅ Block Registration (Individual) - Connected to API
+    // ============================================================================
+    const handleBlockRegistration = (studentId) => {
+        const student = students.find(s => s.student_id === studentId || s.id === parseInt(studentId.replace('STD-', '')));
+        if (!student) {
+            alert('Student not found');
+            return;
+        }
+        setSelectedStudent(student);
+        setIndividualAction('block');
+        setIsIndividualModalOpen(true);
+    };
+
+    const handleIndividualActionConfirm = async (penaltyAmount) => {
+        setIsIndividualModalOpen(false);
+        const studentId = selectedStudent.student_id || `STD-${selectedStudent.user_id}`;
+        setActionLoading(`${individualAction}-${studentId}`);
+
         try {
-            // Find student to get user_id
-            const student = students.find(s => s.student_id === studentId);
-            if (!student) {
-                alert('Student not found');
-                return;
+            if (individualAction === 'reminder') {
+                await unpaidStudentsService.contactStudent(selectedStudent.user_id, {
+                    contact_method: 'EMAIL',
+                    notes: 'Payment reminder sent from Unpaid Students page'
+                });
+            } else if (individualAction === 'penalty') {
+                await unpaidStudentsService.applyPenalty(selectedStudent.user_id || selectedStudent.id, {
+                    penalty_amount: penaltyAmount,
+                    penalty_type: 'LATE_FEE',
+                    notes: `Late payment penalty applied - ${selectedStudent.days_overdue || 0} days overdue`
+                });
+            } else if (individualAction === 'block') {
+                await unpaidStudentsService.blockStudent(selectedStudent.user_id || selectedStudent.id, {
+                    block_type: 'REGISTRATION',
+                    reason: `Outstanding dues of $${selectedStudent.outstanding} - ${selectedStudent.days_overdue || 0} days overdue`,
+                    notes: 'Blocked from Unpaid Students page'
+                });
             }
 
-            // ✅ Use existing API
-            await unpaidStudentsService.contactStudent(student.user_id, {
-                contact_method: 'EMAIL',
-                notes: 'Payment reminder sent from Unpaid Students page'
-            });
-            
-            alert(`Reminder sent to student ${studentId}`);
-            
             // Refresh data
             const data = await unpaidStudentsService.getUnpaidStudents();
             setStudents(data.students);
+            setStats({
+                unpaidCount: data.summary.unpaid_count,
+                totalOutstanding: data.summary.total_outstanding,
+                overdueCount: data.summary.overdue_count,
+            });
+
+            // Show success modal
+            setSuccessAction(individualAction);
+            setSuccessStudentName(selectedStudent.name || selectedStudent.username);
+            setIsSuccessModalOpen(true);
         } catch (err) {
-            console.error('Error sending reminder:', err);
-            alert('Failed to send reminder. Please try again.');
+            console.error(`Error performing ${individualAction}:`, err);
+            alert(`Failed to ${individualAction}. Please try again.`);
         } finally {
             setActionLoading(null);
         }
     };
 
     // ============================================================================
-    // ✅ Apply Penalties (Individual) - Connected to API
+    // ✅ Send Bulk Reminder - Connected to API
     // ============================================================================
-    const handleApplyPenalties = async (studentId) => {
-        const student = students.find(s => s.student_id === studentId || s.id === parseInt(studentId.replace('STD-', '')));
-        if (!student) {
-            alert('Student not found');
+    const handleSendBulkReminder = () => {
+        if (students.length === 0) {
+            alert('No unpaid students found.');
             return;
         }
+        setCurrentAction('reminder');
+        setIsActionModalOpen(true);
+    };
 
-        const penaltyAmount = prompt(`Enter penalty amount for ${student.name}:`, '50');
-        if (!penaltyAmount || isNaN(penaltyAmount) || parseFloat(penaltyAmount) <= 0) {
+    const handleApplyLatePenalties = () => {
+        const overdueStudents = students.filter(s => (s.days_overdue || 0) > 0);
+        if (overdueStudents.length === 0) {
+            alert('No overdue students found.');
             return;
         }
+        setCurrentAction('penalty');
+        setIsActionModalOpen(true);
+    };
 
-        setActionLoading(`penalty-${studentId}`);
-        
+    const handleBlockRegistrations = () => {
+        const severelyOverdue = students.filter(s => (s.days_overdue || 0) > 7);
+        if (severelyOverdue.length === 0) {
+            alert('No severely overdue students found.');
+            return;
+        }
+        setCurrentAction('block');
+        setIsActionModalOpen(true);
+    };
+
+    const handleActionConfirm = async (penaltyAmount) => {
+        setIsActionModalOpen(false);
+        setActionLoading(`bulk-${currentAction}`);
+
         try {
-            await unpaidStudentsService.applyPenalty(student.user_id || student.id, {
-                penalty_amount: parseFloat(penaltyAmount),
-                penalty_type: 'LATE_FEE',
-                notes: `Late payment penalty applied - ${student.days_overdue || 0} days overdue`
-            });
-            
-            alert(`Penalty of $${penaltyAmount} applied successfully to ${student.name}`);
-            
+            let result;
+
+            if (currentAction === 'reminder') {
+                result = await unpaidStudentsService.sendBulkReminders({
+                    student_ids: 'all',
+                    message_template: 'default',
+                    contact_method: 'EMAIL'
+                });
+            } else if (currentAction === 'penalty') {
+                const overdueStudents = students.filter(s => (s.days_overdue || 0) > 0);
+                const studentIds = overdueStudents.map(s => s.user_id || s.id);
+                result = await unpaidStudentsService.applyBulkPenalties({
+                    student_ids: studentIds,
+                    penalty_amount: penaltyAmount,
+                    penalty_type: 'LATE_FEE'
+                });
+            } else if (currentAction === 'block') {
+                const severelyOverdue = students.filter(s => (s.days_overdue || 0) > 7);
+                const studentIds = severelyOverdue.map(s => s.user_id || s.id);
+                result = await unpaidStudentsService.blockBulkRegistrations({
+                    student_ids: studentIds,
+                    block_type: 'REGISTRATION',
+                    reason: 'Outstanding dues over 7 days'
+                });
+            }
+
+            // Show result modal
+            setActionResult(result);
+            setIsResultModalOpen(true);
+
             // Refresh data
             const data = await unpaidStudentsService.getUnpaidStudents();
             setStudents(data.students);
@@ -113,157 +227,10 @@ const UnpaidStudents = () => {
                 overdueCount: data.summary.overdue_count,
             });
         } catch (err) {
-            console.error('Error applying penalty:', err);
-            alert('Failed to apply penalty. Please try again.');
+            console.error(`Error performing ${currentAction}:`, err);
+            alert(`Failed to ${currentAction}. Please try again.`);
         } finally {
             setActionLoading(null);
-        }
-    };
-
-    // ============================================================================
-    // ✅ Block Registration (Individual) - Connected to API
-    // ============================================================================
-    const handleBlockRegistration = async (studentId) => {
-        const student = students.find(s => s.student_id === studentId || s.id === parseInt(studentId.replace('STD-', '')));
-        if (!student) {
-            alert('Student not found');
-            return;
-        }
-
-        if (window.confirm(`Are you sure you want to block registration for ${student.name}?`)) {
-            setActionLoading(`block-${studentId}`);
-            
-            try {
-                await unpaidStudentsService.blockStudent(student.user_id || student.id, {
-                    block_type: 'REGISTRATION',
-                    reason: `Outstanding dues of $${student.outstanding} - ${student.days_overdue || 0} days overdue`,
-                    notes: 'Blocked from Unpaid Students page'
-                });
-                
-                alert(`Registration blocked successfully for ${student.name}`);
-                
-                // Refresh data
-                const data = await unpaidStudentsService.getUnpaidStudents();
-                setStudents(data.students);
-            } catch (err) {
-                console.error('Error blocking student:', err);
-                alert('Failed to block student. Please try again.');
-            } finally {
-                setActionLoading(null);
-            }
-        }
-    };
-
-    // ============================================================================
-    // ✅ Send Bulk Reminder - Connected to API
-    // ============================================================================
-    const handleSendBulkReminder = async () => {
-        if (students.length === 0) {
-            alert('No unpaid students found.');
-            return;
-        }
-
-        if (window.confirm(`Send reminders to all ${students.length} unpaid students?`)) {
-            setActionLoading('bulk-reminder');
-            
-            try {
-                const result = await unpaidStudentsService.sendBulkReminders({
-                    student_ids: 'all',
-                    message_template: 'default',
-                    contact_method: 'EMAIL'
-                });
-                
-                alert(`Bulk reminders sent successfully!\nSent: ${result.sent_count}\nFailed: ${result.failed_count}`);
-                
-                // Refresh data
-                const data = await unpaidStudentsService.getUnpaidStudents();
-                setStudents(data.students);
-            } catch (err) {
-                console.error('Error sending bulk reminders:', err);
-                alert('Failed to send bulk reminders. Please try again.');
-            } finally {
-                setActionLoading(null);
-            }
-        }
-    };
-
-    // ============================================================================
-    // ✅ Apply Late Penalties - Connected to API
-    // ============================================================================
-    const handleApplyLatePenalties = async () => {
-        const overdueStudents = students.filter(s => (s.days_overdue || 0) > 0);
-        if (overdueStudents.length === 0) {
-            alert('No overdue students found.');
-            return;
-        }
-
-        const penaltyAmount = prompt(`Enter penalty amount to apply to ${overdueStudents.length} overdue students:`, '50');
-        if (!penaltyAmount || isNaN(penaltyAmount) || parseFloat(penaltyAmount) <= 0) {
-            return;
-        }
-
-        if (window.confirm(`Apply $${penaltyAmount} penalty to ${overdueStudents.length} overdue students?`)) {
-            setActionLoading('bulk-penalty');
-            
-            try {
-                const studentIds = overdueStudents.map(s => s.user_id || s.id);
-                const result = await unpaidStudentsService.applyBulkPenalties({
-                    student_ids: studentIds,
-                    penalty_amount: parseFloat(penaltyAmount),
-                    penalty_type: 'LATE_FEE'
-                });
-                
-                alert(`Bulk penalties applied successfully!\nApplied to: ${result.applied_count} students\nTotal penalties: $${result.total_penalties}`);
-                
-                // Refresh data
-                const data = await unpaidStudentsService.getUnpaidStudents();
-                setStudents(data.students);
-                setStats({
-                    unpaidCount: data.summary.unpaid_count,
-                    totalOutstanding: data.summary.total_outstanding,
-                    overdueCount: data.summary.overdue_count,
-                });
-            } catch (err) {
-                console.error('Error applying bulk penalties:', err);
-                alert('Failed to apply bulk penalties. Please try again.');
-            } finally {
-                setActionLoading(null);
-            }
-        }
-    };
-
-    // ============================================================================
-    // ✅ Block Registrations - Connected to API
-    // ============================================================================
-    const handleBlockRegistrations = async () => {
-        const severelyOverdue = students.filter(s => (s.days_overdue || 0) > 7);
-        if (severelyOverdue.length === 0) {
-            alert('No severely overdue students found.');
-            return;
-        }
-        
-        if (window.confirm(`Block registration for ${severelyOverdue.length} students with overdue payments (>7 days)?`)) {
-            setActionLoading('bulk-block');
-            
-            try {
-                const studentIds = severelyOverdue.map(s => s.user_id || s.id);
-                const result = await unpaidStudentsService.blockBulkRegistrations({
-                    student_ids: studentIds,
-                    block_type: 'REGISTRATION',
-                    reason: 'Outstanding dues over 7 days'
-                });
-                
-                alert(`Bulk registrations blocked successfully!\nBlocked: ${result.blocked_count} students`);
-                
-                // Refresh data
-                const data = await unpaidStudentsService.getUnpaidStudents();
-                setStudents(data.students);
-            } catch (err) {
-                console.error('Error blocking bulk registrations:', err);
-                alert('Failed to block bulk registrations. Please try again.');
-            } finally {
-                setActionLoading(null);
-            }
         }
     };
 
@@ -271,7 +238,7 @@ const UnpaidStudents = () => {
         // Use status field if available, otherwise calculate from days_overdue
         const daysOverdue = student.days_overdue || 0;
         const status = student.status || '';
-        
+
         if (daysOverdue > 7 || status === 'Critical') return 'status-severe-overdue';
         if (daysOverdue > 0 || status === 'Moderate') return 'status-overdue';
         if (status === 'Due Today') return 'status-due-today';
@@ -324,6 +291,47 @@ const UnpaidStudents = () => {
 
     return (
         <div className="unpaid-students-page">
+            {/* Individual Action Modal */}
+            <IndividualActionModal
+                isOpen={isIndividualModalOpen}
+                onClose={() => setIsIndividualModalOpen(false)}
+                onConfirm={handleIndividualActionConfirm}
+                actionType={individualAction}
+                student={selectedStudent}
+                isLoading={actionLoading !== null}
+            />
+
+            {/* Individual Action Success Modal */}
+            <IndividualActionSuccessModal
+                isOpen={isSuccessModalOpen}
+                onClose={() => setIsSuccessModalOpen(false)}
+                actionType={successAction}
+                studentName={successStudentName}
+            />
+
+            {/* Bulk Action Modal */}
+            <BulkActionModal
+                isOpen={isActionModalOpen}
+                onClose={() => setIsActionModalOpen(false)}
+                onConfirm={handleActionConfirm}
+                actionType={currentAction}
+                studentCount={
+                    currentAction === 'reminder' ? students.length :
+                        currentAction === 'penalty' ? students.filter(s => (s.days_overdue || 0) > 0).length :
+                            currentAction === 'block' ? students.filter(s => (s.days_overdue || 0) > 7).length :
+                                0
+                }
+                isLoading={actionLoading !== null}
+            />
+
+            {/* Bulk Action Result Modal */}
+            <BulkActionResultModal
+                isOpen={isResultModalOpen}
+                onClose={() => setIsResultModalOpen(false)}
+                result={actionResult}
+                actionType={currentAction}
+            />
+
             {/* Header */}
             <div className="page-header">
                 <div className="header-content">
@@ -373,8 +381,8 @@ const UnpaidStudents = () => {
 
             {/* Action Buttons */}
             <div className="action-buttons-bar">
-                <button 
-                    className="action-btn reminder-btn" 
+                <button
+                    className="action-btn reminder-btn"
                     onClick={handleSendBulkReminder}
                     disabled={actionLoading === 'bulk-reminder' || students.length === 0}
                 >
@@ -389,8 +397,8 @@ const UnpaidStudents = () => {
                         </>
                     )}
                 </button>
-                <button 
-                    className="action-btn penalties-btn" 
+                <button
+                    className="action-btn penalties-btn"
                     onClick={handleApplyLatePenalties}
                     disabled={actionLoading === 'bulk-penalty' || students.filter(s => (s.days_overdue || 0) > 0).length === 0}
                 >
@@ -403,8 +411,8 @@ const UnpaidStudents = () => {
                         </>
                     )}
                 </button>
-                <button 
-                    className="action-btn block-btn" 
+                <button
+                    className="action-btn block-btn"
                     onClick={handleBlockRegistrations}
                     disabled={actionLoading === 'bulk-block' || students.filter(s => (s.days_overdue || 0) > 7).length === 0}
                 >

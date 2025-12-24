@@ -300,15 +300,18 @@ const CourseRegistration = () => {
     setError(null);
 
     try {
-      // Enroll in all selected courses at once (Batch)
+      // Enroll in courses one at a time (backend doesn't support batch)
       const courseIds = selectedCourses.map(course => course.id);
       
-      await studentService.enrollCourse({
-        course_ids: courseIds,
-        include_bus: false
-      });
+      // Enroll sequentially
+      for (const courseId of courseIds) {
+        await studentService.enrollCourse({
+          course_id: courseId,
+          include_bus: false
+        });
+      }
 
-      message.success('Registration successful!');
+      message.success(`Successfully registered for ${courseIds.length} course(s)!`);
       setSelectedCourses([]);
 
       // Refresh data to sync with server
