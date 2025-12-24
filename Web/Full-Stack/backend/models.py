@@ -49,6 +49,7 @@ class User(db.Model):
     blocked_at = db.Column(db.DateTime, nullable=True)  # alyan's modification: When student was blocked
     blocked_reason = db.Column(db.String(255), nullable=True)  # alyan's modification: Reason for blocking
     payment_due_date = db.Column(db.DateTime, nullable=True)  # alyan's modification: Payment due date (calculated from enrollment)
+    has_bus_service = db.Column(db.Boolean, default=False)  # NEW: Whether student opted for bus service
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), 
                          onupdate=lambda: datetime.now(timezone.utc))
@@ -504,3 +505,4 @@ class Penalty(db.Model):
             'applied_at': self.applied_at.isoformat() if self.applied_at else None,
             'notes': self.notes
         }
+

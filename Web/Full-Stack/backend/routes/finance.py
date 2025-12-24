@@ -3862,7 +3862,6 @@ def get_payment_proof(payment_id):
         if not os.path.exists(file_path):
             return jsonify({"error": "Proof document file not found on server"}), 404
         
-        # Serve file
         return send_file(file_path, as_attachment=False)
         
     except Exception as e:
@@ -3870,3 +3869,124 @@ def get_payment_proof(payment_id):
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Failed to serve proof document: {str(e)}"}), 500
+
+
+
+
+# ============================================================================
+# ENDPOINT: GET /api/finance/student-fees
+# Description: Get fee breakdown for the current student
+# ============================================================================
+@finance_bp.route("/student-fees", methods=["GET"])
+@jwt_required()
+def get_student_fees():
+    """
+    Calculate total fees based on enrolled courses and additional fees.
+    This endpoint is used by students to see their fee breakdown.
+    
+    Returns:
+        JSON object with breakdown of fees and totals.
+    """
+    try:
+        identity = get_jwt_identity()
+        student_id = int(identity)
+        
+        # Get student's enrollments
+        enrollments = Enrollment.query.filter_by(student_id=student_id, status='ACTIVE').all()
+        
+        # Calculate course fees
+        course_fees = []
+        total_course_fees = 0
+        total_credits = 0
+        
+        for enrollment in enrollments:
+            course = Course.query.get(enrollment.course_id)
+            if course:
+                course_fees.append({
+                    'course_name': course.name,
+                    'course_code': course.course_code if hasattr(course, 'course_code') else course.course_id,
+                    'credits': course.credits,
+                    'fee': enrollment.course_fee
+                })
+                total_course_fees += enrollment.course_fee
+                if course.credits:
+                    total_credits += course.credits
+        
+        # Fetch student to check bus service status
+        student = User.query.get(student_id)
+        if not student:
+            return jsonify({"error": "Student not found"}), 404
+            
+        # Get additional fees (registration, bus, etc.) from FeeStructure
+        additional_fees = FeeStructure.query.filter_by(is_active=True).all()
+        
+        registration_fees = []
+        bus_fees = []
+        other_fees = []
+        
+        total_registration = 0
+        total_bus = 0
+        total_other = 0
+        
+        for fee in additional_fees:
+            fee_dict = {
+                'id': fee.id,
+                'name': fee.name,
+                'amount': fee.amount,
+                'category': fee.category
+            }
+            
+            if fee.category == 'tuition' and not fee.is_per_credit:
+                # Fixed registration/tuition fees apply to all
+                registration_fees.append(fee_dict)
+                total_registration += fee.amount
+            elif fee.category == 'bus':
+                # Bus fees are optional
+                bus_fees.append(fee_dict)
+                if student.has_bus_service:
+                    total_bus += fee.amount
+            else:
+                other_fees.append(fee_dict)
+                total_other += fee.amount
+        
+        # Calculate total paid (verified payments)
+        verified_payments = Payment.query.filter_by(student_id=student_id, status='RECEIVED').all()
+        total_paid = sum(p.amount for p in verified_payments)
+        
+        # Calculate grand total
+        grand_total = total_course_fees + total_registration + total_bus + total_other
+        
+        # Balance due
+        balance_due = max(0, grand_total - total_paid)
+        
+        # Sync with User model to ensure consistency across the application
+        if abs(student.dues_balance - balance_due) > 0.01:
+            student.dues_balance = balance_due
+            student.updated_at = datetime.now(timezone.utc)
+            db.session.commit()
+        
+        return jsonify({
+            'breakdown': {
+                'courses': course_fees,
+                'registration_fees': registration_fees,
+                'bus_fees': bus_fees,
+                'other_fees': other_fees
+            },
+            'totals': {
+                'course_fees': total_course_fees,
+                'registration_fees': total_registration,
+                'bus_fees': total_bus,
+                'other_fees': total_other,
+                'grand_total': grand_total,
+                'total_paid': total_paid,
+                'balance_due': balance_due
+            },
+            'has_bus_service': student.has_bus_service,
+            'total_credits': total_credits
+        }), 200
+        
+    except Exception as e:
+        print(f"Error calculating student fees: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to calculate fees: {str(e)}"}), 500
