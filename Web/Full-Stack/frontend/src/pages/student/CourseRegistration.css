@@ -316,6 +316,58 @@
   margin: 0.5rem 0 0 0;
 }
 
+/* Bus Fee Option */
+.bus-fee-option {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.bus-fee-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  margin: 0;
+}
+
+.bus-fee-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d1d5db;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bus-fee-checkbox:checked {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.bus-fee-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.bus-icon {
+  width: 18px;
+  height: 18px;
+  color: #10b981;
+}
+
+.bus-fee-note {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0 2.25rem;
+}
+
 /* Loading State */
 .loading-container {
   display: flex;

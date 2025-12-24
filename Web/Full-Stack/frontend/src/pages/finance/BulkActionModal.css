@@ -1,0 +1,318 @@
+/* ========================================================================
+   BULK ACTION MODAL
+   ======================================================================== */
+.bulk-action-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 2001;
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+}
+
+/* ========================================================================
+   MODAL HEADER
+   ======================================================================== */
+.bulk-action-modal .modal-header {
+    padding: 2rem 1.5rem 1.5rem;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.bulk-action-modal .modal-header.blue {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.bulk-action-modal .modal-header.orange {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.bulk-action-modal .modal-header.red {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.modal-icon-wrapper {
+    width: 4rem;
+    height: 4rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-icon-wrapper svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: white;
+}
+
+.bulk-action-modal .modal-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 0.5rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.bulk-action-modal .modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.bulk-action-modal .modal-close-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* ========================================================================
+   MODAL CONTENT
+   ======================================================================== */
+.bulk-action-modal .modal-content {
+    padding: 2rem 1.5rem;
+}
+
+.bulk-action-modal .modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.75rem 0;
+    text-align: center;
+}
+
+.bulk-action-modal .modal-message {
+    font-size: 1rem;
+    color: #475569;
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* ========================================================================
+   PENALTY INPUT
+   ======================================================================== */
+.penalty-input-group {
+    margin-bottom: 1.5rem;
+}
+
+.penalty-input-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.5rem;
+}
+
+.penalty-input-group .input-with-prefix {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.penalty-input-group .input-prefix {
+    position: absolute;
+    left: 1rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #64748b;
+    pointer-events: none;
+}
+
+.penalty-input-group input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 2.5rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+    transition: all 0.2s ease;
+}
+
+.penalty-input-group input:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.penalty-input-group input.error {
+    border-color: #ef4444;
+}
+
+.penalty-input-group input.error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.penalty-input-group input:disabled {
+    background: #f1f5f9;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* ========================================================================
+   WARNING BOX
+   ======================================================================== */
+.warning-box {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.warning-box svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #f59e0b;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.warning-box p {
+    font-size: 0.875rem;
+    color: #78350f;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.warning-box strong {
+    font-weight: 700;
+}
+
+/* ========================================================================
+   MODAL ACTIONS
+   ======================================================================== */
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.cancel-btn,
+.confirm-btn {
+    padding: 0.875rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.cancel-btn {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.cancel-btn:hover:not(:disabled) {
+    background: #e2e8f0;
+}
+
+.confirm-btn {
+    color: white;
+}
+
+.confirm-btn.blue {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.confirm-btn.orange {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.confirm-btn.red {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.confirm-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.cancel-btn:disabled,
+.confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================================================
+   RESPONSIVE DESIGN
+   ======================================================================== */
+@media (max-width: 640px) {
+    .bulk-action-modal {
+        width: 95%;
+    }
+
+    .bulk-action-modal .modal-content {
+        padding: 1.5rem 1rem;
+    }
+
+    .bulk-action-modal .modal-title {
+        font-size: 1.25rem;
+    }
+
+    .bulk-action-modal .modal-message {
+        font-size: 0.9375rem;
+    }
+
+    .modal-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .bulk-action-modal .modal-header {
+        padding: 1.5rem 1rem 1rem;
+    }
+
+    .modal-icon-wrapper {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+
+    .modal-icon-wrapper svg {
+        width: 2rem;
+        height: 2rem;
+    }
+}

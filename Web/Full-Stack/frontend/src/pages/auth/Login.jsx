@@ -60,22 +60,35 @@ const Login = ({ onClose }) => {
     setLoading(true);
 
     try {
-      const result = await login(formData.identifier, formData.password);
+      // SECURITY: Pass the selected portal to enforce strict portal isolation
+      const result = await login(formData.identifier, formData.password, view);
 
       if (result.success) {
+        // Login successful - user role matches selected portal
         setSuccess(true);
+        
         // Short delay to show success message
         setTimeout(() => {
-          if (view === 'student') {
+          if (result.role === 'student') {
             navigate('/student/dashboard');
           } else {
-            navigate('/finance');
+            navigate('/finance/dashboard');
           }
         }, 1000);
       } else {
-        setErrors({ general: result.message });
+        // Login failed - could be invalid credentials or portal mismatch
+        if (result.code === 'PORTAL_ACCESS_DENIED') {
+          // SECURITY: Portal mismatch - show clear rejection message
+          setErrors({ 
+            general: result.message || 'Access denied. You cannot access this portal with your credentials.'
+          });
+        } else {
+          // Other errors (invalid credentials, etc.)
+          setErrors({ general: result.message });
+        }
       }
     } catch (err) {
+      console.error('Login error:', err);
       setErrors({ general: 'An unexpected error occurred.' });
     } finally {
       setLoading(false);

@@ -8,16 +8,57 @@ const FinanceDashboardLayout = ({ children }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+
+    // Close sidebar on route change
+    React.useEffect(() => {
+        setIsSidebarOpen(false);
+    }, [location.pathname]);
 
     const handleLogout = () => {
-        logout();
-        window.location.replace('/');
+        // Clear auth data immediately (synchronous)
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Force immediate navigation to home (bypasses all React routing)
+        window.location.href = '/';
+    };
+
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    };
+
+    const closeSidebar = () => {
+        setIsSidebarOpen(false);
     };
 
     return (
-        <div className="finance-dashboard-container">
+        <div className={`finance-dashboard-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+            {/* Top Header Bar */}
+            <header className="finance-topbar">
+                <button className="menu-toggle-btn" onClick={toggleSidebar} aria-label="Toggle Menu">
+                    <svg className="menu-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <div className="topbar-brand">
+                    <img src={logoIcon} alt="Logo" className="topbar-logo" />
+                    <span>Finance Portal</span>
+                </div>
+            </header>
+
+            {/* Overlay Backdrop */}
+            <div className="sidebar-overlay" onClick={closeSidebar}></div>
+
             {/* Sidebar */}
             <aside className="finance-sidebar">
+                {/* Close Button */}
+                <button className="sidebar-close-btn" onClick={closeSidebar} aria-label="Close Sidebar">
+                    <svg className="menu-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
                 {/* Logo Section */}
                 <div className="sidebar-header">
                     <div className="logo-container">
@@ -56,6 +97,15 @@ const FinanceDashboardLayout = ({ children }) => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                 </svg>
                                 <span>Fee Calculation</span>
+                            </Link>
+                        </li>
+
+                        <li className={`nav-item ${location.pathname === '/finance/pending-payments' ? 'active' : ''}`}>
+                            <Link to="/finance/pending-payments" className="nav-link">
+                                <svg className="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Pending Payments</span>
                             </Link>
                         </li>
 

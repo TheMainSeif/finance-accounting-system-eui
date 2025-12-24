@@ -16,6 +16,7 @@ import FeeCalculation from './pages/finance/FeeCalculation';
 import BankReconciliation from './pages/finance/BankReconciliation';
 import Reports from './pages/finance/Reports';
 import UnpaidStudents from './pages/finance/UnpaidStudents';
+import PendingPayments from './pages/finance/PendingPayments';
 import FinanceDashboardLayout from './layouts/FinanceDashboardLayout';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
             <Route path="/finance/bank-reconciliation" element={<FinanceDashboardLayout><BankReconciliation /></FinanceDashboardLayout>} />
             <Route path="/finance/reports" element={<FinanceDashboardLayout><Reports /></FinanceDashboardLayout>} />
             <Route path="/finance/unpaid-students" element={<FinanceDashboardLayout><UnpaidStudents /></FinanceDashboardLayout>} />
+            <Route path="/finance/pending-payments" element={<FinanceDashboardLayout><PendingPayments /></FinanceDashboardLayout>} />
           </Route>
         </Routes>
       </Router>

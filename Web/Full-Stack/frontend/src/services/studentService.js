@@ -88,16 +88,68 @@ const studentService = {
   },
 
   /**
-   * Enroll in a course
-   * @param {number} courseId - ID of the course to enroll in
-   * @returns {Promise<Object>} Enrollment confirmation
+   * Enroll in a course or courses
+   * @param {Object} enrollmentData - Enrollment data
+   * @param {number} [enrollmentData.course_id] - Single course ID
+   * @param {Array<number>} [enrollmentData.course_ids] - List of course IDs (for batch)
+   * @param {boolean} [enrollmentData.include_bus=false] - Whether to include bus fees
+   * @returns {Promise<Object>} Enrollment confirmation with fee breakdown
    */
-  enrollCourse: async (courseId) => {
+  enrollCourse: async (enrollmentData) => {
     try {
-      const response = await api.post('/students/enroll', { course_id: courseId });
+      // Support both old format (just courseId) and new format (object)
+      // Also support batch format
+      let data = enrollmentData;
+      
+      if (typeof enrollmentData === 'number') {
+        data = { course_id: enrollmentData, include_bus: false };
+      }
+      
+      const response = await api.post('/students/enroll', data);
       return response.data;
     } catch (error) {
       console.error('Error enrolling in course:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Estimate fees for selected courses
+   * @param {Array<number>} courseIds - List of course IDs
+   * @param {boolean} includeBus - Whether to include bus fees
+   * @returns {Promise<Object>} Fee estimation
+   */
+  estimateFees: async (courseIds, includeBus = false) => {
+    try {
+      const response = await api.post('/students/estimate-fees', { 
+        course_ids: courseIds,
+        include_bus: includeBus
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error estimating fees:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get detailed fee breakdown for all enrollments
+   * @returns {Promise<Object>} Fee breakdown data
+   * {
+   *   tuition_fees: number,
+   *   registration_fees: number,
+   *   bus_fees: number,
+   *   total: number,
+   *   total_credits: number,
+   *   breakdown: Array<{category, name, amount, quantity, is_per_credit, subtotal}>
+   * }
+   */
+  getFeeBreakdown: async () => {
+    try {
+      const response = await api.get('/students/fee-breakdown');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching fee breakdown:', error);
       throw error;
     }
   },

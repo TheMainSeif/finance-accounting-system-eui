@@ -107,17 +107,20 @@ def register():
 
 # ============================================================================
 # ENDPOINT: POST /api/auth/login
-# Description: Authenticate user and issue JWT token
+# Description: Authenticate user and issue JWT token (PORTAL-SPECIFIC)
 # ============================================================================
 @auth_bp.route("/login", methods=["POST"])
 def login():
     """
     Authenticate user and issue JWT access token.
+    SECURITY: Enforces strict portal isolation - rejects authentication if user
+    role doesn't match the selected portal.
     
     Request Body:
     {
         "username": "student_username",
-        "password": "secure_password"
+        "password": "secure_password",
+        "portal": "student" | "finance"  // REQUIRED: Which portal is being accessed
     }
     
     Returns:
@@ -126,13 +129,27 @@ def login():
         "user_id": 1,
         "username": "student_username",
         "is_admin": false,
+        "role": "student",
         "dues_balance": 0.0
     }
+    
+    Errors:
+    - 400: Missing portal parameter
+    - 401: Invalid credentials
+    - 403: Role mismatch (student trying to access finance portal or vice versa)
     """
     data = request.get_json()
     
     if not data or not data.get("username") or not data.get("password"):
         return jsonify({"error": "Username and password are required"}), 400
+    
+    # SECURITY: Portal parameter is REQUIRED
+    portal = data.get("portal")
+    if not portal or portal not in ["student", "finance"]:
+        return jsonify({
+            "error": "Invalid or missing portal parameter",
+            "code": "INVALID_PORTAL"
+        }), 400
     
     username = data.get("username")
     password = data.get("password")
@@ -142,15 +159,36 @@ def login():
     
     # Verify credentials
     if not user or not user.verify_password(password):
-        return jsonify({"error": "Invalid username or password"}), 401
+        return jsonify({
+            "error": "Invalid username or password",
+            "code": "INVALID_CREDENTIALS"
+        }), 401
+    
+    # SECURITY: Determine user's actual role
+    user_role = "finance" if user.is_admin else "student"
+    
+    # SECURITY: STRICT PORTAL ISOLATION - Reject if role doesn't match portal
+    if user_role != portal:
+        # Log the unauthorized attempt
+        print(f"SECURITY: Portal access denied - User '{username}' (role: {user_role}) attempted to access {portal} portal")
+        
+        return jsonify({
+            "error": f"Access denied. You cannot access the {portal} portal with {user_role} credentials.",
+            "code": "PORTAL_ACCESS_DENIED",
+            "user_role": user_role,
+            "attempted_portal": portal,
+            "message": f"Please use the {user_role} portal to log in."
+        }), 403
     
     try:
-        # Create JWT token with user ID as string identity
+        # Role matches portal - proceed with authentication
         access_token = create_access_token(
             identity=str(user.id),  # Must be a string
             additional_claims={
                 "username": user.username,
                 "is_admin": user.is_admin,
+                "role": user_role,  # SECURITY: Explicit role for portal routing
+                "portal": portal,   # SECURITY: Track which portal was used
                 "user_id": user.id,
                 "email": user.email
             }
@@ -162,6 +200,7 @@ def login():
             "username": user.username,
             "email": user.email,
             "is_admin": user.is_admin,
+            "role": user_role,  # SECURITY: Explicit role for frontend
             "dues_balance": user.dues_balance
         }), 200
     
