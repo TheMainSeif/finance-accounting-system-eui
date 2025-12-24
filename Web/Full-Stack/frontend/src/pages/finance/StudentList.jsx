@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { studentListService } from '../../services/api-routes/student-list-routes';
 import StudentDetailsModal from './StudentDetailsModal';
 import './StudentList.css';
 
 const StudentList = () => {
+    const navigate = useNavigate();
+    
     // Search and filter states
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFaculty, setSelectedFaculty] = useState('all');
@@ -151,6 +154,16 @@ const StudentList = () => {
                     <h1 className="page-title">Student List</h1>
                     <p className="page-subtitle">View and manage student payment information</p>
                 </div>
+                <button 
+                    className="btn-pending-payments"
+                    onClick={() => navigate('/finance/pending-payments')}
+                    title="View Pending Bank Transfer Payments"
+                >
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    View Pending Payments
+                </button>
             </div>
 
             {/* Search and Filter Bar */}

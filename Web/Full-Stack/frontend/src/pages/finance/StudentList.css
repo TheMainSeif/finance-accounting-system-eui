@@ -9,6 +9,9 @@
    ======================================================================== */
 .page-header {
     margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
 }
 
 .header-content {
@@ -25,6 +28,33 @@
 .page-subtitle {
     font-size: 0.95rem;
     color: #64748b;
+}
+
+.btn-pending-payments {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #fbbf24;
+    color: #1e293b;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-pending-payments svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.btn-pending-payments:hover {
+    background: #f59e0b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(251, 191, 36, 0.3);
 }
 
 /* ========================================================================
