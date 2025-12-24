@@ -49,6 +49,7 @@ class User(db.Model):
     blocked_at = db.Column(db.DateTime, nullable=True)  # alyan's modification: When student was blocked
     blocked_reason = db.Column(db.String(255), nullable=True)  # alyan's modification: Reason for blocking
     payment_due_date = db.Column(db.DateTime, nullable=True)  # alyan's modification: Payment due date (calculated from enrollment)
+    has_bus_service = db.Column(db.Boolean, default=False)  # NEW: Whether student opted for bus service
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), 
                          onupdate=lambda: datetime.now(timezone.utc))
@@ -504,3 +505,33 @@ class Penalty(db.Model):
             'applied_at': self.applied_at.isoformat() if self.applied_at else None,
             'notes': self.notes
         }
+
+
+# ============================================================================
+# FEE STRUCTURE MODEL - Manages additional fees beyond course tuition
+# ============================================================================
+class FeeStructure(db.Model):
+    __tablename__ = "fee_structure"
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(50), nullable=False)  # 'tuition', 'bus', 'registration', etc.
+    name = db.Column(db.String(100), nullable=False)  # e.g., "Registration Fee", "Bus Service"
+    amount = db.Column(db.Float, nullable=False, default=0.0)
+    is_per_credit = db.Column(db.Boolean, default=False)  # If true, multiply by credit hours
+    is_active = db.Column(db.Boolean, default=True)
+    display_order = db.Column(db.Integer, default=0)  # For ordering items in UI
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    def to_dict(self):
+        """Convert fee structure to dictionary representation."""
+        return {
+            'id': self.id,
+            'category': self.category,
+            'name': self.name,
+            'amount': self.amount,
+            'is_per_credit': self.is_per_credit,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+

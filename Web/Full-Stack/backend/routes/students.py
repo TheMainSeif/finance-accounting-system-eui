@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from models import db, User, Course, Enrollment, Payment, Notification, ActionLog
+from models import db, User, Course, Enrollment, Payment, Notification, ActionLog, FeeStructure
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timezone
 import os
@@ -51,6 +51,10 @@ def enroll_course():
         
         if existing_enrollment:
             return jsonify({"error": "Already enrolled in this course"}), 400
+
+        # Check for previous enrollments to determine if registration fees apply
+        previous_enrollments = Enrollment.query.filter_by(student_id=student_id).count()
+        is_first_enrollment = (previous_enrollments == 0)
             
         # Create enrollment
         enrollment = Enrollment(
@@ -60,15 +64,39 @@ def enroll_course():
             status='ACTIVE'
         )
         
-        # Update student dues
-        student.dues_balance += course.total_fee
-        student.updated_at = datetime.utcnow()
+        total_fees_added = course.total_fee
+        fee_messages = [f"Course fee: ${course.total_fee:.2f}"]
         
+        # Apply Fixed Registration/Other Fees only on first enrollment
+        if is_first_enrollment:
+            # Get fixed tuition fees (registration, etc.) that are NOT per credit
+            fixed_fees = FeeStructure.query.filter(
+                FeeStructure.category == 'tuition',
+                FeeStructure.is_per_credit == False,
+                FeeStructure.is_active == True
+            ).all()
+            
+            for fee in fixed_fees:
+                total_fees_added += fee.amount
+                fee_messages.append(f"{fee.name}: ${fee.amount:.2f}")
+
+            # Also apply bus fees if enabled (Assuming default inclusion or check logic)
+            # For simplicity, let's include all active bus fees for now on first enrollment
+            bus_fees = FeeStructure.query.filter(
+                FeeStructure.category == 'bus',
+                FeeStructure.is_active == True
+            ).all()
+             
+            for fee in bus_fees:
+                 total_fees_added += fee.amount
+                 fee_messages.append(f"{fee.name}: ${fee.amount:.2f}")
+
         # Create notification
+        notification_msg = f"You have successfully enrolled in {course.name}. " + " | ".join(fee_messages)
         notification = Notification(
             student_id=student_id,
             notification_type='ENROLLMENT',
-            message=f"You have successfully enrolled in {course.name}. Course fee: ${course.total_fee:.2f}"
+            message=notification_msg
         )
         
         # Log action
@@ -87,12 +115,18 @@ def enroll_course():
         return jsonify({
             "msg": "Enrollment successful",
             "enrollment_id": enrollment.id,
-            "new_balance": student.dues_balance
+            "new_balance": student.dues_balance,
+            "fees_added": fee_messages
         }), 201
         
     except Exception as e:
         db.session.rollback()
+        print(f"Enrollment Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Enrollment failed: {str(e)}"}), 500
+
+
 
 
 # ============================================================================
@@ -225,8 +259,14 @@ def make_payment():
 
         # Handle File Upload
         proof_document = None
+        print(f"DEBUG: request.files = {request.files}")
+        print(f"DEBUG: 'proof_document' in request.files = {'proof_document' in request.files}")
+        
         if 'proof_document' in request.files:
             file = request.files['proof_document']
+            print(f"DEBUG: file = {file}")
+            print(f"DEBUG: file.filename = {file.filename if file else 'None'}")
+            
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 # Create unique filename: timestamp_studentID_filename
@@ -243,8 +283,12 @@ def make_payment():
                 
                 # Store relative path in DB
                 proof_document = os.path.join('uploads', 'payments', filename)
+                print(f"DEBUG: File saved successfully. proof_document = {proof_document}")
             elif file:
+                print(f"DEBUG: File rejected - invalid type. filename = {file.filename}")
                 return jsonify({"error": "Invalid file type. Allowed: pdf, png, jpg, jpeg"}), 400
+        else:
+            print("DEBUG: No proof_document in request.files")
 
         # Determine Status
         status = 'RECEIVED'
@@ -368,6 +412,31 @@ def get_student_status():
         # Calculate totals
         total_course_fees = sum(e.course_fee for e in enrollments if hasattr(e, 'course_fee'))
         
+        # Integrated Fee Calculation: Sum additional fees from FeeStructure
+        additional_fees = FeeStructure.query.filter_by(is_active=True).all()
+        total_additional = 0
+        for fee in additional_fees:
+            if fee.category == 'tuition' and not fee.is_per_credit:
+                total_additional += fee.amount
+            elif fee.category == 'bus':
+                # Bus fees are now optional
+                if student.has_bus_service:
+                    total_additional += fee.amount
+            elif fee.category != 'tuition' and fee.category != 'bus':
+                total_additional += fee.amount
+        
+        # Calculate verified payments
+        verified_payments = Payment.query.filter_by(student_id=student_id, status='RECEIVED').all()
+        total_paid = sum(p.amount for p in verified_payments)
+        
+        calculated_balance = max(0, total_course_fees + total_additional - total_paid)
+        
+        # Sync dues_balance in User model if it differs significantly
+        if abs(student.dues_balance - calculated_balance) > 0.01:
+            student.dues_balance = calculated_balance
+            student.updated_at = datetime.now(timezone.utc)
+            db.session.commit()
+        
         return jsonify({
             "user_id": student.id,
             "username": student.username,
@@ -454,3 +523,37 @@ def get_payment_history():
         return jsonify({"error": "Invalid user identity format"}), 400
     except Exception as e:
         return jsonify({"error": f"Failed to retrieve payments: {str(e)}"}), 500
+
+
+# ============================================================================
+# ENDPOINT: PUT /api/students/bus-service
+# Description: Toggle bus service enrollment
+# ============================================================================
+@students_bp.route("/bus-service", methods=["PUT"])
+@jwt_required()
+def toggle_bus_service():
+    try:
+        print("DEBUG: Toggle bus service endpoint hit!")
+        identity = get_jwt_identity()
+        student_id = int(identity)
+        data = request.get_json()
+        print(f"DEBUG: Data received: {data}")
+        
+        has_bus = data.get('has_bus_service', False)
+        
+        student = User.query.get(student_id)
+        if not student:
+            return jsonify({"error": "Student not found"}), 404
+            
+        student.has_bus_service = has_bus
+        student.updated_at = datetime.now(timezone.utc)
+        db.session.commit()
+        
+        return jsonify({
+            "msg": "Bus service updated successfully",
+            "has_bus_service": student.has_bus_service
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update bus service: {str(e)}"}), 500
