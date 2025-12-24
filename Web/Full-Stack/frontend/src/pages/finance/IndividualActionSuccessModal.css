@@ -1,0 +1,177 @@
+/* ========================================================================
+   INDIVIDUAL SUCCESS MODAL
+   ======================================================================== */
+.individual-success-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 2001;
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+/* ========================================================================
+   MODAL HEADER
+   ======================================================================== */
+.individual-success-modal .modal-header {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    padding: 2rem 1.5rem 1.5rem;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.individual-success-modal .success-icon-wrapper {
+    width: 4rem;
+    height: 4rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.individual-success-modal .success-icon-wrapper svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: white;
+    animation: scaleIn 0.4s ease-out 0.2s both;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+.individual-success-modal .modal-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 0.5rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.individual-success-modal .modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.individual-success-modal .modal-close-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* ========================================================================
+   MODAL CONTENT
+   ======================================================================== */
+.individual-success-modal .modal-content {
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.individual-success-modal .modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.75rem 0;
+}
+
+.individual-success-modal .modal-message {
+    font-size: 1rem;
+    color: #475569;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+}
+
+/* ========================================================================
+   CLOSE BUTTON
+   ======================================================================== */
+.individual-success-modal .close-btn {
+    width: 100%;
+    padding: 0.875rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    border-radius: 0.5rem;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.individual-success-modal .close-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.individual-success-modal .close-btn:active {
+    transform: translateY(0);
+}
+
+/* ========================================================================
+   RESPONSIVE DESIGN
+   ======================================================================== */
+@media (max-width: 640px) {
+    .individual-success-modal {
+        width: 95%;
+    }
+
+    .individual-success-modal .modal-content {
+        padding: 1.5rem 1rem;
+    }
+
+    .individual-success-modal .modal-title {
+        font-size: 1.25rem;
+    }
+
+    .individual-success-modal .modal-message {
+        font-size: 0.9375rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .individual-success-modal .modal-header {
+        padding: 1.5rem 1rem 1rem;
+    }
+
+    .individual-success-modal .success-icon-wrapper {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+
+    .individual-success-modal .success-icon-wrapper svg {
+        width: 2rem;
+        height: 2rem;
+    }
+}

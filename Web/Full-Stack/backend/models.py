@@ -117,7 +117,6 @@ class Course(db.Model):
     total_fee = db.Column(db.Float, nullable=False)  # Total fee for the course
     faculty_id = db.Column(db.Integer, db.ForeignKey('faculties.id'), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    faculty = db.Column(db.String(100), nullable=True)  # alyan's modification: Faculty/Department name (Engineering, Computer Science, Digital Arts, Business Informatics)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), 
                          onupdate=lambda: datetime.now(timezone.utc))
@@ -139,12 +138,12 @@ class Course(db.Model):
             'credits': self.credits,
             'total_fee': self.total_fee,
             'description': self.description,
-            'faculty': self.faculty,  # alyan's modification
+            'faculty': self.faculty.name if self.faculty else None,
             'created_at': self.created_at.isoformat()
         }
         
         if include_faculty and self.faculty:
-            result['faculty'] = self.faculty.to_dict()
+            result['faculty_info'] = self.faculty.to_dict()
         
         return result
 
@@ -165,6 +164,7 @@ class Enrollment(db.Model):
     # Relationships
     student = db.relationship('User', back_populates='enrollments', foreign_keys=[student_id])
     course = db.relationship('Course', back_populates='enrollments')
+    fee_breakdown = db.relationship('EnrollmentFeeBreakdown', back_populates='enrollment', cascade='all, delete-orphan')
 
     __table_args__ = (
         db.UniqueConstraint('student_id', 'course_id', name='unique_student_course'),
@@ -179,9 +179,48 @@ class Enrollment(db.Model):
             'student_id': self.student_id,
             'course_id': self.course_id,
             'course_name': self.course.name,
+            'credits': self.course.credits,
             'course_fee': self.course_fee,
             'enrollment_date': self.enrollment_date.isoformat(),
             'status': self.status
+        }
+
+
+# ============================================================================
+# ENROLLMENT FEE BREAKDOWN MODEL - Detailed fee breakdown for each enrollment
+# ============================================================================
+class EnrollmentFeeBreakdown(db.Model):
+    """
+    Stores detailed fee breakdown for each enrollment.
+    Allows historical tracking even if FeeStructure changes.
+    """
+    __tablename__ = "enrollment_fee_breakdowns"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    enrollment_id = db.Column(db.Integer, db.ForeignKey('enrollments.id'), nullable=False)
+    fee_category = db.Column(db.String(50), nullable=False)  # 'tuition', 'bus', 'other'
+    fee_name = db.Column(db.String(100), nullable=False)
+    amount = db.Column(db.Float, nullable=False)  # Unit amount
+    quantity = db.Column(db.Integer, default=1)  # For per-credit fees
+    is_per_credit = db.Column(db.Boolean, default=False)
+    subtotal = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # Relationship
+    enrollment = db.relationship('Enrollment', back_populates='fee_breakdown')
+    
+    def to_dict(self):
+        """Convert fee breakdown to dictionary representation."""
+        return {
+            'id': self.id,
+            'enrollment_id': self.enrollment_id,
+            'category': self.fee_category,
+            'name': self.fee_name,
+            'amount': self.amount,
+            'quantity': self.quantity,
+            'is_per_credit': self.is_per_credit,
+            'subtotal': self.subtotal,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
 
@@ -195,31 +234,47 @@ class Payment(db.Model):
     amount = db.Column(db.Float, nullable=False)
     payment_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     payment_method = db.Column(db.String(50), default='MANUAL')  # MANUAL, BANK_TRANSFER, ONLINE
-    status = db.Column(db.String(20), default='RECEIVED')  # RECEIVED, PENDING, RECONCILED
+    status = db.Column(db.String(20), default='RECEIVED')  # RECEIVED, PENDING, REJECTED, RECONCILED
     reference_number = db.Column(db.String(100), nullable=True)  # For external payments
     proof_document = db.Column(db.String(255), nullable=True)  # Path to uploaded file
     recorded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Admin who recorded it
+    verified_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Finance user who verified
+    verified_at = db.Column(db.DateTime, nullable=True)  # When payment was verified
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     student = db.relationship('User', back_populates='payments', foreign_keys=[student_id])
     recorded_by_user = db.relationship('User', foreign_keys=[recorded_by])
+    verified_by_user = db.relationship('User', foreign_keys=[verified_by])
 
-    def to_dict(self):
-        """Convert payment to dictionary representation."""
-        return {
+    def to_dict(self, include_student=False):
+        """Convert payment to dictionary representation.
+        
+        Args:
+            include_student (bool): Whether to include student details
+        """
+        result = {
             'id': self.id,
             'student_id': self.student_id,
             'amount': self.amount,
-            'payment_date': self.payment_date.isoformat(),
+            'payment_date': self.payment_date.isoformat() if self.payment_date else None,
             'payment_method': self.payment_method,
             'status': self.status,
             'reference_number': self.reference_number,
             'proof_document': self.proof_document,
+            'verified_by': self.verified_by,
+            'verified_at': self.verified_at.isoformat() if self.verified_at else None,
             'notes': self.notes,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
+        
+        if include_student and self.student:
+            result['student_name'] = f"{self.student.first_name} {self.student.last_name}"
+            result['student_username'] = self.student.username
+            result['student_email'] = self.student.email
+            
+        return result
 
 
 # ============================================================================

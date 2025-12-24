@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import BankSyncModal from './BankSyncModal';
+import BankDataFormModal from './BankDataFormModal';
+import MatchTransactionModal from './MatchTransactionModal';
 import './BankReconciliation.css';
 import bankReconciliationService from '../../services/api-routes/bank-reconciliation-routes/bankReconciliationService';
 
@@ -21,6 +24,13 @@ const BankReconciliation = () => {
     const [matchingTransaction, setMatchingTransaction] = useState(null);
     const [suggestions, setSuggestions] = useState(null);
 
+    // Modal state
+    const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+    const [syncResult, setSyncResult] = useState(null);
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+    const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+    const [currentTransactionId, setCurrentTransactionId] = useState(null);
+
     useEffect(() => {
         if (location.hash === '#transactions') {
             const element = document.getElementById('transactions');
@@ -40,7 +50,7 @@ const BankReconciliation = () => {
                 params.status = filterStatus;
             }
             const data = await bankReconciliationService.getBankReconciliation(params);
-            
+
             setTransactions(data.transactions || []);
             setSummary(data.summary || {
                 total: 0,
@@ -75,35 +85,24 @@ const BankReconciliation = () => {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
-    const handleSyncBankData = async () => {
-        // For now, show a prompt for manual entry
-        const bankRef = prompt('Enter Bank Reference:');
-        if (!bankRef) return;
-        
-        const amount = parseFloat(prompt('Enter Amount:'));
-        if (!amount || isNaN(amount)) {
-            alert('Invalid amount');
-            return;
-        }
-        
-        const dateStr = prompt('Enter Date (YYYY-MM-DD):');
-        if (!dateStr) return;
-        
-        const description = prompt('Enter Description (optional):') || '';
-        
+    const handleSyncBankData = () => {
+        // Open form modal
+        setIsFormModalOpen(true);
+    };
+
+    const handleFormSubmit = async (transactionData) => {
         try {
             setSyncing(true);
+            setIsFormModalOpen(false);
+
             const result = await bankReconciliationService.syncBankData({
                 source: 'manual',
-                transactions: [{
-                    bank_ref: bankRef,
-                    amount: amount,
-                    date: dateStr,
-                    description: description
-                }]
+                transactions: [transactionData]
             });
-            
-            alert(`Bank data synced successfully!\nImported: ${result.imported_count}\nAuto-matched: ${result.auto_matched}\nUnmatched: ${result.unmatched}`);
+
+            // Show modal with results
+            setSyncResult(result);
+            setIsSyncModalOpen(true);
             fetchBankReconciliation();
         } catch (err) {
             console.error('Error syncing bank data:', err);
@@ -113,25 +112,30 @@ const BankReconciliation = () => {
         }
     };
 
+    const handleCloseSyncModal = () => {
+        setIsSyncModalOpen(false);
+        setSyncResult(null);
+    };
+
     const handleViewTransaction = async (transactionId) => {
         try {
             const data = await bankReconciliationService.getTransactionDetails(transactionId);
             setViewingTransaction(data);
-            
+
             // Show details in alert (can be replaced with modal)
             let message = `Transaction Details:\n\n`;
             message += `Bank Ref: ${data.transaction.bank_ref}\n`;
             message += `Amount: $${data.transaction.amount}\n`;
             message += `Date: ${data.transaction.date}\n`;
             message += `Status: ${data.transaction.status}\n`;
-            
+
             if (data.matched_payment) {
                 message += `\nMatched Payment:\n`;
                 message += `Student: ${data.matched_payment.student_name}\n`;
                 message += `Amount: $${data.matched_payment.amount}\n`;
                 message += `Date: ${new Date(data.matched_payment.payment_date).toLocaleDateString()}\n`;
             }
-            
+
             if (data.student) {
                 message += `\nStudent Info:\n`;
                 message += `Name: ${data.student.name}\n`;
@@ -139,7 +143,7 @@ const BankReconciliation = () => {
                 message += `Dues Balance: $${data.student.dues_balance}\n`;
                 message += `Total Paid: $${data.student.total_paid}\n`;
             }
-            
+
             alert(message);
         } catch (err) {
             console.error('Error fetching transaction details:', err);
@@ -153,71 +157,67 @@ const BankReconciliation = () => {
             const suggestionsData = await bankReconciliationService.getMatchingSuggestions(transactionId);
             setSuggestions(suggestionsData);
             setMatchingTransaction(transactionId);
-            
-            // For now, show a simple prompt (can be replaced with modal)
-            const matchType = prompt('Match to:\n1. Existing Payment (enter payment_id)\n2. Create New Payment (enter student_id)\n\nEnter "1" or "2":');
-            
-            if (matchType === '1') {
-                const paymentId = parseInt(prompt('Enter Payment ID:'));
-                if (!paymentId || isNaN(paymentId)) {
-                    alert('Invalid payment ID');
-                    return;
-                }
-                
-                const notes = prompt('Enter notes (optional):') || '';
-                
-                try {
-                    const result = await bankReconciliationService.matchTransaction(transactionId, {
-                        payment_id: paymentId,
-                        notes: notes
-                    });
-                    
-                    alert(`Transaction matched successfully!\nStudent: ${result.student_name}\nRemaining Dues: $${result.remaining_dues}`);
-                    fetchBankReconciliation();
-                } catch (err) {
-                    console.error('Error matching transaction:', err);
-                    alert('Failed to match transaction. Please try again.');
-                }
-            } else if (matchType === '2') {
-                const studentId = parseInt(prompt('Enter Student ID:'));
-                if (!studentId || isNaN(studentId)) {
-                    alert('Invalid student ID');
-                    return;
-                }
-                
-                const paymentMethod = prompt('Enter Payment Method (BANK_TRANSFER/ONLINE/MANUAL):') || 'BANK_TRANSFER';
-                const notes = prompt('Enter notes (optional):') || '';
-                
-                try {
-                    const result = await bankReconciliationService.matchTransaction(transactionId, {
-                        create_payment: true,
-                        student_id: studentId,
-                        payment_method: paymentMethod,
-                        notes: notes
-                    });
-                    
-                    alert(`Transaction matched and payment created!\nStudent: ${result.student_name}\nPayment ID: ${result.payment_id}\nRemaining Dues: $${result.remaining_dues}`);
-                    fetchBankReconciliation();
-                } catch (err) {
-                    console.error('Error matching transaction:', err);
-                    alert('Failed to match transaction. Please try again.');
-                }
-            }
+            setCurrentTransactionId(transactionId);
+
+            // Open match modal
+            setIsMatchModalOpen(true);
         } catch (err) {
             console.error('Error fetching suggestions:', err);
             alert('Failed to load matching suggestions. Please try again.');
         }
     };
 
+    const handleMatchSubmit = async (transactionId, matchData) => {
+        try {
+            const result = await bankReconciliationService.matchTransaction(transactionId, matchData);
+
+            // Show success message
+            const successMsg = matchData.create_payment
+                ? `Transaction matched and payment created!\nStudent: ${result.student_name}\nPayment ID: ${result.payment_id}\nRemaining Dues: $${result.remaining_dues}`
+                : `Transaction matched successfully!\nStudent: ${result.student_name}\nRemaining Dues: $${result.remaining_dues}`;
+
+            alert(successMsg);
+            fetchBankReconciliation();
+        } catch (err) {
+            console.error('Error matching transaction:', err);
+            alert('Failed to match transaction. Please try again.');
+        }
+    };
+
     return (
         <div className="bank-reconciliation-page">
+            {/* Bank Data Form Modal */}
+            <BankDataFormModal
+                isOpen={isFormModalOpen}
+                onClose={() => setIsFormModalOpen(false)}
+                onSubmit={handleFormSubmit}
+                isLoading={syncing}
+            />
+
+            {/* Match Transaction Modal */}
+            <MatchTransactionModal
+                isOpen={isMatchModalOpen}
+                onClose={() => setIsMatchModalOpen(false)}
+                onSubmit={handleMatchSubmit}
+                transactionId={currentTransactionId}
+                suggestions={suggestions}
+                isLoading={false}
+            />
+
+            {/* Bank Sync Modal */}
+            <BankSyncModal
+                isOpen={isSyncModalOpen}
+                onClose={handleCloseSyncModal}
+                syncResult={syncResult}
+            />
+
             {/* Header */}
             <div className="page-header">
                 <div className="header-content">
                     <h1 className="page-title">Bank Reconciliation</h1>
                     <p className="page-subtitle">Match bank transactions with system payments</p>
                 </div>
-                <button 
+                <button
                     className={`sync-bank-btn ${syncing ? 'syncing' : ''}`}
                     onClick={handleSyncBankData}
                     disabled={syncing}
@@ -276,11 +276,11 @@ const BankReconciliation = () => {
 
             {/* Error Message */}
             {error && (
-                <div className="error-message" style={{ 
-                    padding: '1rem', 
-                    margin: '1rem 0', 
-                    backgroundColor: '#fee2e2', 
-                    color: '#dc2626', 
+                <div className="error-message" style={{
+                    padding: '1rem',
+                    margin: '1rem 0',
+                    backgroundColor: '#fee2e2',
+                    color: '#dc2626',
                     borderRadius: '0.5rem',
                     display: 'flex',
                     alignItems: 'center',

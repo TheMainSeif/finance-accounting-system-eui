@@ -1,6 +1,6 @@
-/* DashboardLayout.css */
+/* DashboardLayout.css - Student Portal */
 
-.dashboard-container {
+.student-dashboard-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -10,7 +10,7 @@
 
 /* Top Navigation Bar */
 /* Top Navigation Bar */
-.dashboard-topbar {
+.student-dashboard-topbar {
   background-color: #0f172a;
   /* Very Dark Navy (Matches Sidebar) */
   height: 64px;
@@ -24,7 +24,7 @@
   color: white;
 }
 
-.menu-toggle-btn {
+.student-menu-toggle-btn {
   background: transparent;
   border: none;
   cursor: pointer;
@@ -39,17 +39,17 @@
   transition: background-color 0.2s;
 }
 
-.menu-toggle-btn:hover {
+.student-menu-toggle-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
-.menu-icon {
+.student-menu-icon {
   width: 24px;
   height: 24px;
 }
 
-.topbar-brand {
+.student-topbar-brand {
   font-size: 1.25rem;
   /* Larger than body */
   font-weight: 600;
@@ -60,7 +60,7 @@
   gap: 0.75rem;
 }
 
-.topbar-logo {
+.student-topbar-logo {
   width: 40px;
   height: 40px;
   object-fit: contain;
@@ -71,7 +71,7 @@
 }
 
 /* Sidebar (Off-Canvas) */
-.dashboard-sidebar {
+.student-dashboard-sidebar {
   width: 280px;
   background-color: #0f172a;
   /* Very dark navy */
@@ -91,12 +91,12 @@
 }
 
 /* Open State */
-.dashboard-container.sidebar-open .dashboard-sidebar {
+.student-dashboard-container.sidebar-open .student-dashboard-sidebar {
   transform: translateX(0);
 }
 
 /* Overlay Backdrop */
-.sidebar-overlay {
+.student-sidebar-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
@@ -107,13 +107,13 @@
   backdrop-filter: blur(2px);
 }
 
-.dashboard-container.sidebar-open .sidebar-overlay {
+.student-dashboard-container.sidebar-open .student-sidebar-overlay {
   opacity: 1;
   visibility: visible;
 }
 
 /* Close Button inside Sidebar */
-.sidebar-close-btn {
+.student-sidebar-close-btn {
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -127,13 +127,13 @@
   z-index: 101;
 }
 
-.sidebar-close-btn:hover {
+.student-sidebar-close-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
 /* Logo Section */
-.sidebar-header {
+.student-sidebar-header {
   padding: 1.5rem;
   display: flex;
   align-items: center;
@@ -143,7 +143,7 @@
   /* Space for close button if needed, or adjust */
 }
 
-.logo-container {
+.student-logo-container {
   width: 56px;
   /* Bigger */
   height: 56px;
@@ -156,7 +156,7 @@
   flex-shrink: 0;
 }
 
-.sidebar-logo {
+.student-sidebar-logo {
   width: 40px;
   /* Bigger */
   height: 40px;
@@ -164,11 +164,11 @@
   object-fit: contain;
 }
 
-.portal-info {
+.student-portal-info {
   flex: 1;
 }
 
-.sidebar-portal-title {
+.student-sidebar-portal-title {
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
@@ -176,19 +176,19 @@
 }
 
 /* Navigation */
-.sidebar-nav {
+.student-sidebar-nav {
   flex: 1;
   padding: 1rem 0;
   overflow-y: auto;
 }
 
-.nav-list {
+.student-nav-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.nav-item {
+.student-nav-item {
   display: flex;
   align-items: center;
   padding: 0.875rem 1.5rem;
@@ -199,7 +199,7 @@
   font-weight: 500;
 }
 
-.nav-link {
+.student-nav-link {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -208,12 +208,12 @@
   width: 100%;
 }
 
-.nav-item:hover {
+.student-nav-item:hover {
   background-color: rgba(251, 191, 36, 0.1);
   color: #fbbf24;
 }
 
-.nav-item.active {
+.student-nav-item.active {
   background-color: rgba(251, 191, 36, 0.15);
   color: #fbbf24;
   border-radius: 0.5rem;
@@ -222,19 +222,19 @@
   border-left: 4px solid #fbbf24;
 }
 
-.nav-icon {
+.student-nav-icon {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
 }
 
 /* Footer Section */
-.sidebar-footer {
+.student-sidebar-footer {
   padding: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.user-profile {
+.student-user-profile {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -242,7 +242,7 @@
   margin-bottom: 0.75rem;
 }
 
-.user-avatar {
+.student-user-avatar {
   width: 40px;
   height: 40px;
   background-color: #e7bb41;
@@ -255,23 +255,23 @@
   flex-shrink: 0;
 }
 
-.user-info {
+.student-user-info {
   flex: 1;
 }
 
-.user-name {
+.student-user-name {
   font-size: 0.9375rem;
   font-weight: 600;
   color: white;
   margin-bottom: 0.125rem;
 }
 
-.user-id {
+.student-user-id {
   font-size: 0.75rem;
   color: #94a3b8;
 }
 
-.signout-btn {
+.student-signout-btn {
   width: 100%;
   display: flex;
   align-items: center;
@@ -288,19 +288,19 @@
   transition: all 0.2s;
 }
 
-.signout-btn:hover {
+.student-signout-btn:hover {
   background-color: #ef4444;
   color: white;
 }
 
-.signout-icon {
+.student-signout-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
 }
 
 /* Main Content */
-.dashboard-main {
+.student-dashboard-main {
   flex: 1;
   width: 100%;
   margin-left: 0;
@@ -312,7 +312,7 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .dashboard-main {
+  .student-dashboard-main {
     padding: 1rem;
   }
 }

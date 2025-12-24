@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { studentListService } from '../../services/api-routes/student-list-routes';
+import StudentDetailsModal from './StudentDetailsModal';
 import './StudentList.css';
 
 const StudentList = () => {
@@ -17,6 +18,10 @@ const StudentList = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [viewLoading, setViewLoading] = useState(null); // For individual view button loading
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedStudentData, setSelectedStudentData] = useState(null);
 
     // Debounce search query
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -57,10 +62,10 @@ const StudentList = () => {
             }
 
             const data = await studentListService.getStudents(params);
-            
+
             setStudents(data.students || []);
             setTotalCount(data.total_count || 0);
-            
+
             // Update faculties list from API
             if (data.faculties && data.faculties.length > 0) {
                 setFaculties(['All Faculties', ...data.faculties]);
@@ -95,7 +100,7 @@ const StudentList = () => {
     const handleViewStudent = async (student) => {
         // Use user_id from student object, or extract from id string
         const userId = student.user_id || parseInt(student.id.replace('STD-', ''));
-        
+
         if (!userId || isNaN(userId)) {
             console.error('Invalid student ID:', student);
             alert('Invalid student ID. Please try again.');
@@ -105,23 +110,10 @@ const StudentList = () => {
         setViewLoading(student.id);
         try {
             const data = await studentListService.getStudentDetails(userId);
-            
-            // For now, show alert with details. Later you can open a modal or navigate to details page
-            console.log('Student Details:', data);
-            
-            // Format details for display
-            const details = `Student: ${data.student.name}\n` +
-                          `Email: ${data.student.email || 'N/A'}\n` +
-                          `Faculty: ${data.student.faculty}\n` +
-                          `Status: ${data.student.status}\n` +
-                          `Total Fees: $${data.student.totalFees.toLocaleString()}\n` +
-                          `Paid: $${data.student.paid.toLocaleString()}\n` +
-                          `Dues: $${data.student.dues.toLocaleString()}\n\n` +
-                          `Enrollments: ${data.enrollments.length}\n` +
-                          `Payments: ${data.payments.length}\n` +
-                          `Notifications: ${data.notifications.length}`;
-            
-            alert(details);
+
+            // Open modal with student data
+            setSelectedStudentData(data);
+            setIsModalOpen(true);
         } catch (err) {
             console.error('Error fetching student details:', err);
             alert('Failed to load student details. Please try again.');
@@ -130,8 +122,12 @@ const StudentList = () => {
         }
     };
 
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedStudentData(null);
+    };
+
     const handleMoreActions = (studentId) => {
-        console.log('More actions for:', studentId);
         // Show dropdown menu with more options
         // TODO: Implement dropdown menu with actions like:
         // - Record Payment
@@ -142,6 +138,13 @@ const StudentList = () => {
 
     return (
         <div className="student-list-page">
+            {/* Student Details Modal */}
+            <StudentDetailsModal
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                studentData={selectedStudentData}
+            />
+
             {/* Header */}
             <div className="page-header">
                 <div className="header-content">
@@ -302,6 +305,14 @@ const StudentList = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Student Details Modal */}
+            {isModalOpen && selectedStudentData && (
+                <StudentDetailsModal
+                    studentData={selectedStudentData}
+                    onClose={handleCloseModal}
+                />
+            )}
         </div>
     );
 };

@@ -1,0 +1,103 @@
+/* ========================================================================
+   INDIVIDUAL ACTION MODAL
+   ======================================================================== */
+.individual-action-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 450px;
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 2001;
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+}
+
+/* ========================================================================
+   STUDENT INFO CARD
+   ======================================================================== */
+.student-info-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.info-row:not(:last-child) {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.info-value {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.info-value.outstanding {
+    color: #f59e0b;
+    font-size: 1.125rem;
+}
+
+.info-value.overdue {
+    color: #ef4444;
+}
+
+/* ========================================================================
+   RESPONSIVE DESIGN
+   ======================================================================== */
+@media (max-width: 640px) {
+    .individual-action-modal {
+        width: 95%;
+    }
+
+    .individual-action-modal .modal-content {
+        padding: 1.5rem 1rem;
+    }
+
+    .individual-action-modal .modal-title {
+        font-size: 1.25rem;
+    }
+
+    .individual-action-modal .modal-message {
+        font-size: 0.9375rem;
+    }
+
+    .student-info-card {
+        padding: 0.75rem;
+    }
+
+    .info-label {
+        font-size: 0.8125rem;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+    }
+
+    .info-value.outstanding {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .individual-action-modal .modal-header {
+        padding: 1.5rem 1rem 1rem;
+    }
+}
