@@ -123,6 +123,7 @@ def seed_database():
         db.session.add_all(students)
         db.session.commit()
         print(f"✓ Created 1 admin and {len(students)} student users")
+        # ====================================================================
         
         # ====================================================================
         # Create Fee Structures (Finance Reconciliation)
