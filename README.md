@@ -216,7 +216,7 @@ finance-accounting-system-eui/
 │   └── project schedule.pod
 │
 └── Testing/                     # Software Testing
-    └── README.md                # Testing documentation
+    
 ```
 
 ---
@@ -331,7 +331,7 @@ The project implements a comprehensive testing strategy covering:
 - Jest/React Testing Library for frontend tests
 - Cypress/Playwright for E2E testing
 
-See [Testing/README.md](Testing/README.md) for detailed testing documentation.
+See Testing Branch for detailed testing documentation.
 
 ---
 
@@ -369,8 +369,13 @@ This project demonstrates comprehensive proficiency across three academic discip
 
 ## 🤝 Project Team
 
-**Egyptian University for Informatics (EUI)**
+**Egypt University for Informatics (EUI)**
 - Faculty of Computer and Information Sciences
+- Seif Wafeek
+- Malak Montaser
+- Youssef Nagui
+- Abdelrahman Alyan
+  
 - Fall 2025 Semester
 
 ---
@@ -381,4 +386,4 @@ This project is developed as part of academic coursework at Egyptian University 
 
 ---
 
-**Built with ❤️ at Egyptian University for Informatics**
+**Built with ❤️ at Egypt University for Informatics**
